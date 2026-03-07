@@ -28,12 +28,11 @@ interface Props {
 export default function UploadComponet({ file }: Props) {
   const [folderName, setFolderName] = useState<string>("")
   const [selectedFolder, setSelectedFolder] = useState<string>("")
-  const [isFolderCreated, setFolderCreated] = useState<boolean>(false)
   const [folderId,setFolderId] = useState<string>('')
-  const [creatBtnDisable, serCreateBtnDisable] = useState<boolean>(false)
   const [isOpen , setIsOpen] = useState<boolean>(false)
   const [loading, setLoading] = useState<boolean>(false)
   const [createFolderLoading, setCreateFolderLoading] = useState<boolean>(false)
+  const [folderRefreshToken, setFolderRefreshToken] = useState<number>(0)
 
   const handleFolderChange = (folder: string) => {
     setSelectedFolder(folder)
@@ -64,14 +63,15 @@ export default function UploadComponet({ file }: Props) {
       
       if (res.status === 200) {
         console.log(res.data)
-        setFolderCreated(true) 
         setFolderId(res.data.folderID)
+        setSelectedFolder(trimmedName)
+        setFolderName("")
+        setFolderRefreshToken((prev) => prev + 1)
         toast({
           title: "Success",
-          description: res.data?.message || 'Folder created successfully',
+          description: res.data?.message || 'Folder created and selected',
           variant: "default",
         })
-        serCreateBtnDisable(true)
       }
     } catch (err: any) {
       const apiMessage = err?.response?.data?.message || err?.response?.data || err?.message || 'Request failed'
@@ -88,10 +88,19 @@ export default function UploadComponet({ file }: Props) {
 
   const uploadFile = async (e: any) => {
     e.preventDefault()
+    if (!file) {
+      toast({
+        title: 'Error',
+        description: 'Please select a file before uploading',
+        variant: 'destructive',
+      })
+      return
+    }
+
     console.log(file)
     setLoading(true)
     try {
-      const folder = selectedFolder || folderName || 'public'
+      const folder = selectedFolder || folderName.trim() || 'public'
       const API_URL = import.meta.env.VITE_API_URL;
 
 
@@ -115,8 +124,9 @@ export default function UploadComponet({ file }: Props) {
           description: 'File uploaded successfully',
           variant: "default",
         })
-        setFolderCreated(false)
         setSelectedFolder("")
+        setFolderName("")
+        setFolderId('')
         setLoading(false)
         setIsOpen(false);
       }
@@ -169,7 +179,11 @@ export default function UploadComponet({ file }: Props) {
           <div className="w-[40%] h-[.05rem] bg-black"></div>
         </div>
         <div>
-          <Combobox onFolderSelect={handleFolderChange} isFolderThere={isFolderCreated} />
+          <Combobox
+            onFolderSelect={handleFolderChange}
+            selectedFolder={selectedFolder}
+            refreshToken={folderRefreshToken}
+          />
         </div>
         <div className="flex flex-col items-center justify-center space-y-4 mt-4">
           <p className="text-md text-black font-bold font-Rubic mx-auto w-[90%]">If you want to add a folder, you can create one</p>
@@ -185,7 +199,7 @@ export default function UploadComponet({ file }: Props) {
             <Button
               onClick={createFolderHandler}
               className="w-[95px] h-8 rounded-sm text-[.9rem] font-Rubic"
-              disabled={creatBtnDisable || selectedFolder !== ""}
+              disabled={createFolderLoading || !folderName.trim()}
             >
               {
                 createFolderLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Create'

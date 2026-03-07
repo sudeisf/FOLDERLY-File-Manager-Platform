@@ -8,6 +8,7 @@ import docx from "@/assets/docx-file-format-symbol-svgrepo-com.svg";
 import pptx from "@/assets/ppt-svgrepo-com.svg";
 import png from "@/assets/png-file-type-svgrepo-com.svg";
 import jpg from "@/assets/jpeg-svgrepo-com.svg";
+import pdf from "@/assets/xml-svgrepo-com.svg";
 import cancelIcon from "@/assets/remove-circle-svgrepo-com.svg";
 import { Button } from "../ui/button";
 import CreateFolder from "../dialog/UploadDialog";
@@ -19,19 +20,20 @@ const formSchema = z.object({
   file: z
     .instanceof(File)
     .refine((file) => file.size < 2 * 1024 * 1024, {
-      message: "File size must be less than 2MB",
+      message: "File size must be less than or equal to 2MB",
     })
     .refine((file) => {
       const validTypes = [
         "image/jpeg",
         "image/png",
         "image/svg+xml",
+        "application/pdf",
         "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
         "application/vnd.openxmlformats-officedocument.presentationml.presentation",
       ];
       return validTypes.includes(file.type);
     }, {
-      message: "File must be an image (JPG, PNG, SVG), DOCX, or PPTX",
+      message: "File must be JPG, PNG, SVG, PDF, DOCX, or PPTX",
     }),
 });
 
@@ -41,10 +43,11 @@ const formSchema = z.object({
       "image/jpeg": jpg,
       "image/png": png,
       "image/svg+xml": svg,
+      "application/pdf": pdf,
       "application/vnd.openxmlformats-officedocument.wordprocessingml.document": docx,
       "application/vnd.openxmlformats-officedocument.presentationml.presentation": pptx,
     };
-    return fileTypes[file.type];
+    return fileTypes[file.type] || pdf;
   };
 
 export default function Uploader() {
@@ -125,6 +128,7 @@ export default function Uploader() {
             <Input
               ref={fileInputRef}
               type="file"
+              accept=".jpg,.jpeg,.png,.svg,.pdf,.docx,.pptx,image/jpeg,image/png,image/svg+xml,application/pdf,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/vnd.openxmlformats-officedocument.presentationml.presentation"
               onChange={handleFileChange}
               className="hidden w-full cursor-pointer"
             />

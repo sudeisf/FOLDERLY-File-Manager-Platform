@@ -31,10 +31,11 @@ const FormSchema = z.object({
 
 interface ComboboxProps {
   onFolderSelect: (folder: string) => void;
-  isFolderThere: boolean;
+  refreshToken?: number;
+  selectedFolder?: string;
 }
 
-export default function Combobox({ onFolderSelect, isFolderThere }: ComboboxProps) {
+export default function Combobox({ onFolderSelect, refreshToken = 0, selectedFolder = "" }: ComboboxProps) {
   const [open, setOpen] = useState(false);
   const [folders, setFolders] = useState<string[]>([]); // Array to store folder names (string[])
   const form = useForm<z.infer<typeof FormSchema>>({
@@ -60,7 +61,11 @@ export default function Combobox({ onFolderSelect, isFolderThere }: ComboboxProp
     };
 
     fetchFolderNames();
-  }, []);
+  }, [refreshToken]);
+
+  useEffect(() => {
+    form.setValue("folder", selectedFolder);
+  }, [selectedFolder, form]);
 
   return (
     <Form {...form}>
@@ -83,7 +88,6 @@ export default function Combobox({ onFolderSelect, isFolderThere }: ComboboxProp
                         "w-[170px] h-8 justify-between",
                         !field.value && "text-muted-foreground"
                       )}
-                      disabled={isFolderThere}
                     >
                       {field.value
                         ? folders.find((folder) => folder === field.value)

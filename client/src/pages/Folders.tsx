@@ -25,6 +25,24 @@ import { useFolder } from "@/hooks/useFolder";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
 import { Button } from "@/components/ui/button";
+
+const getDownloadFileName = (contentDisposition: string): string => {
+  if (!contentDisposition) return 'download';
+
+  // Prefer RFC 5987 format: filename*=UTF-8''encoded-name
+  const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i);
+  if (utf8Match?.[1]) {
+    try {
+      return decodeURIComponent(utf8Match[1]);
+    } catch {
+      return utf8Match[1];
+    }
+  }
+
+  // Fallback to basic filename="name.ext"
+  const basicMatch = contentDisposition.match(/filename="?([^";]+)"?/i);
+  return basicMatch?.[1] || 'download';
+};
 interface Folder {
   name: string;
   files: { 
@@ -107,8 +125,7 @@ export default function Folders() {
             link.href = url;
             
             const contentDisposition = response.headers['content-disposition'] || '';
-            const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
-            const fileName = fileNameMatch ? fileNameMatch[1] : 'download';
+            const fileName = getDownloadFileName(contentDisposition);
             
             
             link.setAttribute('download', fileName);

@@ -61,13 +61,14 @@ const uploadFile = async (req, res) => {
             }
         );
 
-        const supabaseFileid = data.id;
-
-      
-        if (error) {
-            console.error('Supabase upload error:', error.message);
-            return res.status(400).send(`${error.message}`);
+        if (error || !data) {
+            const uploadMessage = error?.message || 'Upload failed: no response data from Supabase';
+            console.error('Supabase upload error:', uploadMessage);
+            return res.status(400).send(uploadMessage);
         }
+
+        // Some storage responses may not include `id`; keep uid populated.
+        const supabaseFileid = data.id || data.path;
 
         // const fileId = uuidv4();
 
@@ -246,17 +247,17 @@ const downloadFile = async (req, res) => {
       }
 
 
-    const fileStream = Readable.from(buffer);
-    const originalName = decodeURIComponent(file.name.trim());
-
-    // Replace multiple underscores or unwanted characters with safe alternatives
-    const safeName = originalName
-      .replace(/\s+/g, ' ')                // Convert multiple spaces to single space
-      .replace(/[^a-zA-Z0-9.\-_\s]/g, '')  // Remove characters except a-z, A-Z, 0-9, dot, dash, underscore, and space
-      .replace(/_+/g, '_');   
+        const fileStream = Readable.from(buffer);
+        const originalName = decodeURIComponent(file.name.trim());
+        // Keep original filename while preventing header injection / path separators.
+        const safeName = originalName
+            .replace(/[\r\n]/g, '')
+            .replace(/[\\/]/g, '-')
+            .replace(/"/g, "'");
+        const encodedName = encodeURIComponent(safeName);
       
       res.setHeader('Content-Type', 'application/octet-stream');
-      res.setHeader('Content-Disposition', `attachment; filename="${safeName}"`);
+            res.setHeader('Content-Disposition', `attachment; filename="${safeName}"; filename*=UTF-8''${encodedName}`);
       console.log(file.name)
       res.setHeader('Content-Length', file.size);
       console.log(file.name , file.size)
