@@ -95,6 +95,24 @@ npm run dev
 Frontend default URL: `http://localhost:5173`
 Backend default URL: `http://localhost:3000`
 
+## Testing
+
+Backend tests use Jest + Supertest.
+
+Run backend tests:
+
+```bash
+cd server
+npm test
+```
+
+Watch mode:
+
+```bash
+cd server
+npm run test:watch
+```
+
 ## Docker
 
 The project includes container setup for both frontend and backend:
