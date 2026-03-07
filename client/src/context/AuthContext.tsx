@@ -2,7 +2,7 @@ import axios from "axios";
 import { createContext, useContext, useEffect, useState } from "react";
 
 type AuthContextType = {
-  isLoggedIn: boolean;
+  isLoggedIn: boolean | null;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
   logout: () => Promise<void>;
   loading: boolean;
@@ -10,49 +10,40 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const fetchAuthStatus = async (): Promise<{
-  data: any; success: boolean 
-}> => {
+const fetchAuthStatus = async (): Promise<{ success: boolean }> => {
   const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/Protected`, {
     withCredentials: true,
   });
-  return response.data;
+  // Backend responses can be either { success } or { data: { success } }.
+  return response.data?.data ?? response.data;
 };
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean>(() => {
-    const storedIsLoggedIn = localStorage.getItem("isLoggedIn");
-    return storedIsLoggedIn === "true";
-  });
-  const [loading, setLoading] = useState<boolean>(false);  
+  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
+  const [loading, setLoading] = useState<boolean>(true);
 
  
   useEffect(() => {
     const checkAuthStatus = async () => {
       try {
-        setLoading(true);
-        const response = await fetchAuthStatus();
-        const data = response.data;
-        setIsLoggedIn(data.success);
-        if(data.success){
-          localStorage.setItem("isLoggedIn", String(data.success));
-          setLoading(false);
-        }else{
+        const data = await fetchAuthStatus();
+        const authenticated = Boolean(data?.success);
+        setIsLoggedIn(authenticated);
+        if (authenticated) {
+          localStorage.setItem("isLoggedIn", "true");
+        } else {
           localStorage.removeItem("isLoggedIn");
-          setLoading(false);
         }
-      } catch (error) {
+      } catch {
         setIsLoggedIn(false);
         localStorage.removeItem("isLoggedIn");
+      } finally {
         setLoading(false);
       }
     };
 
-    
-    if (isLoggedIn === undefined) {
-      checkAuthStatus();
-    }
-  }, []); 
+    checkAuthStatus();
+  }, []);
 
   const logout = async () => {
     try {

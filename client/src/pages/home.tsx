@@ -16,8 +16,6 @@ import {
 } from "@/components/ui/tabs"
 import Uploader from "@/components/Uploader/Uploader"
 import Folder from "@/pages/Folders"
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { queryClient } from "@/lib/queryClient";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
 import { Loader2 } from "lucide-react";
@@ -103,9 +101,7 @@ export default function Home() {
           </CardHeader>
 
           <CardContent className="space-y-1"> 
-            <QueryClientProvider client={queryClient as unknown as QueryClient}>
-             <Folder />
-              </QueryClientProvider>                 
+            <Folder />
           </CardContent>
 
          

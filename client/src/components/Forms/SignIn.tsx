@@ -47,9 +47,10 @@ export default function Register() {
             }
         }catch(e: any){
             console.log(e)
+            const message = e?.response?.data?.message || e?.message || "Registration failed";
             toast({
                 title: "Error",
-                description: e.response.data.message,
+                description: message,
                 variant: "destructive",
             })      
             setLoading(false);

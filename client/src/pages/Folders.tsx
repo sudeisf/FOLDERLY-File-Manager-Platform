@@ -20,7 +20,7 @@ import pptx from "@/assets/ppt-svgrepo-com.svg";
 import png from "@/assets/png-file-type-svgrepo-com.svg";
 import jpg from "@/assets/jpeg-svgrepo-com.svg";
 
-import { Key, useEffect , useState } from "react";
+import { Key } from "react";
 import { useFolder } from "@/hooks/useFolder";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
@@ -99,13 +99,14 @@ export default function Folders() {
             const APIURl = import.meta.env.VITE_API_URL;
             const response = await axios.get(`${APIURl}/api/files/download/${folderName}/${fileId}`,{
               withCredentials: true,
+              responseType: 'blob',
             });
 
-            const url = window.URL.createObjectURL(new Blob([response.data]));
+            const url = window.URL.createObjectURL(response.data);
             const link = document.createElement('a');
             link.href = url;
             
-            const contentDisposition = response.headers['content-disposition'];
+            const contentDisposition = response.headers['content-disposition'] || '';
             const fileNameMatch = contentDisposition.match(/filename="?(.+)"?/);
             const fileName = fileNameMatch ? fileNameMatch[1] : 'download';
             

@@ -2,12 +2,11 @@ import { useAuth } from "@/context/AuthContext";
 import { Navigate, Outlet, useLocation } from "react-router-dom";
 
 export default function ProtectedLayout() {
-    const { isLoggedIn } = useAuth();
+    const { isLoggedIn, loading } = useAuth();
     const location = useLocation();
 
-    // Handle loading state (if needed)
-    if (isLoggedIn === undefined) {
-        return <div>Loading...</div>; // You can replace this with a loading spinner
+    if (loading) {
+        return <div>Loading...</div>;
     }
 
     // Store the current location in sessionStorage

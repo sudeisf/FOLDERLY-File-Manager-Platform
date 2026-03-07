@@ -11,6 +11,8 @@ import jpg from "@/assets/jpeg-svgrepo-com.svg";
 import cancelIcon from "@/assets/remove-circle-svgrepo-com.svg";
 import { Button } from "../ui/button";
 import CreateFolder from "../dialog/UploadDialog";
+import { useDrop } from "react-dnd";
+import { NativeTypes } from "react-dnd-html5-backend";
 
 // Zod schema for file validation
 const formSchema = z.object({
@@ -49,60 +51,8 @@ export default function Uploader() {
   const [file, setFile] = useState<File | null>(null);
   const [fileIcon, setFileIcon] = useState<string | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [dragActive, setDragActive] = useState(false);
 
-  const handleDragOver = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(true);
-  };
-
-  const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-  };
-
-  const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
-    e.preventDefault();
-    setDragActive(false);
-
-    if (e.dataTransfer.files.length > 0) {
-      const droppedFile = e.dataTransfer.files[0];
-      const icon = setFileIconFunction(droppedFile);
-
-      try {
-        formSchema.parse({ file: droppedFile });
-        setFile(droppedFile);
-        setFileIcon(icon || undefined);
-        toast({
-          title: "Success",
-          description: `${droppedFile.name} uploaded successfully`,
-          variant: "default",
-        });
-      } catch (error: any) {
-        toast({
-          title: "Error",
-          description: error.errors?.[0]?.message || "Invalid file",
-          variant: "destructive",
-        });
-      }
-    }
-  };
-
-  const handleFileUpload = () => {
-    fileInputRef.current?.click();
-  };
-
-  const handleCancel = () => {
-    setFile(null);
-    setFileIcon(undefined);
-    if (fileInputRef.current) {
-      fileInputRef.current.value = "";
-    }
-  };
-
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const selectedFile = e.target.files?.[0];
-    if (!selectedFile) return;
+  const handleSelectedFile = (selectedFile: File) => {
     const icon = setFileIconFunction(selectedFile);
 
     try {
@@ -121,6 +71,37 @@ export default function Uploader() {
         variant: "destructive",
       });
     }
+  };
+
+  const [{ isOver }, drop] = useDrop(() => ({
+    accept: [NativeTypes.FILE],
+    drop: (item: { files?: File[] | FileList }) => {
+      const droppedFile = item?.files?.[0];
+      if (droppedFile) {
+        handleSelectedFile(droppedFile);
+      }
+    },
+    collect: (monitor) => ({
+      isOver: monitor.isOver(),
+    }),
+  }));
+
+  const handleFileUpload = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleCancel = () => {
+    setFile(null);
+    setFileIcon(undefined);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+  };
+
+  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const selectedFile = e.target.files?.[0];
+    if (!selectedFile) return;
+    handleSelectedFile(selectedFile);
 
     e.target.value = ""; 
   };
@@ -130,13 +111,11 @@ export default function Uploader() {
       <div className="w-full h-full max-h-[700px] bg-white pt-8 rounded-lg border-2 shadow-sm">
         <div className="w-full mx-auto bg-white rounded-lg p-4 mb-4">
           <div
+            ref={drop}
             className={`relative w-[95%] mx-auto mb-4 mt-4 bg-white rounded-xl border-dotted border-[.2rem] ${
-              dragActive ? "border-blue-500" : "border-[#d7d7d7]"
+              isOver ? "border-blue-500" : "border-[#d7d7d7]"
             }`}
             onClick={handleFileUpload}
-            onDragOver={handleDragOver}
-            onDragLeave={handleDragLeave}
-            onDrop={handleDrop}
           >
             <div className="flex flex-col items-center h-[300px]">
               <img src={uploader} alt="uploader" className="mx-auto my-10 w-20 h-20 " />

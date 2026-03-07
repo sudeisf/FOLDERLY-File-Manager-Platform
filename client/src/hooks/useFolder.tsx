@@ -5,14 +5,10 @@ import axios from "axios";
 
 
 const fetchFolders = async () => {
-    try {
-        const API_URL = import.meta.env.VITE_API_URL;
-        const {data} = await axios.get(`${API_URL}/api/folders/folder-list`, { withCredentials: true });
-        return data;
-    } catch (error) {
-        console.error(error);
-    }
-}
+    const API_URL = import.meta.env.VITE_API_URL;
+    const {data} = await axios.get(`${API_URL}/api/folders/folder-list`, { withCredentials: true });
+    return data;
+};
 
 
 export const useFolder = () => {
