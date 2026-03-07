@@ -65,6 +65,7 @@ SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 ```
 
 Notes:
+
 - Keep `SUPABASE_SERVICE_ROLE_KEY` in backend only.
 - Ensure your `private.pem` / `public.pem` keys exist in `server/utils/`.
 
@@ -98,12 +99,14 @@ The OpenAPI config lives in:
 ## Backend API Overview
 
 ### Auth
+
 - `POST /api/auth/register`
 - `POST /api/auth/login`
 - `GET /api/auth/logout`
 - `GET /api/auth/protected`
 
 ### Folders
+
 - `POST /api/folders/create-folder`
 - `GET /api/folders/get-folders-names`
 - `GET /api/folders/folder-list`
@@ -111,6 +114,7 @@ The OpenAPI config lives in:
 - `DELETE /api/folders/:id`
 
 ### Files
+
 - `POST /api/files/file`
 - `GET /api/files/view/:folderName/:fileUid`
 - `GET /api/files/download/:folderName/:fileUid`
@@ -118,6 +122,7 @@ The OpenAPI config lives in:
 - `DELETE /api/files/delete/:folderName/:fileUid`
 
 ### Share
+
 - `POST /share/:folderId`
 - `GET /share/:uuid`
 
