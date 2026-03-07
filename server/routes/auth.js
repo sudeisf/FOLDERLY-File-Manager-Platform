@@ -1,9 +1,10 @@
 const router = require('express').Router();
 const { loginController, registerController} = require('../controller/authController');
 const  authenticateUser  = require('../middleware/authenticator');
+const { authLimiter } = require('../middleware/rateLimiter');
 
-router.post('/register', registerController);
-router.post('/login', loginController);
+router.post('/register', authLimiter, registerController);
+router.post('/login', authLimiter, loginController);
 
 router.get('/logout', (req, res) => {
     req.session.destroy((err) => {

@@ -93,6 +93,7 @@ The project includes container setup for both frontend and backend:
 - `server/Dockerfile`
 - `client/Dockerfile`
 - `docker-compose.yml`
+- `nginx/default.conf`
 
 ### Prerequisites
 
@@ -113,9 +114,8 @@ docker compose up -d --build
 
 Service URLs:
 
-- Frontend: `http://localhost:5173`
-- Backend: `http://localhost:3000`
-- Swagger: `http://localhost:3000/api-docs`
+- App (via Nginx): `http://localhost:8080`
+- Swagger (via Nginx): `http://localhost:8080/api-docs`
 
 ### Useful commands
 
@@ -137,6 +137,7 @@ Restart a single service:
 ```bash
 docker compose restart server
 docker compose restart client
+docker compose restart nginx
 ```
 
 Stop containers:
@@ -153,9 +154,10 @@ docker compose down -v
 
 ### Notes
 
-- Client image is served by Nginx on container port `80` and mapped to host `5173`.
-- Server runs on container port `3000` and is mapped to host `3000`.
-- If ports are busy, change host mappings in `docker-compose.yml`.
+- Nginx is the only exposed container (`8080:80`) and proxies requests to `client` and `server`.
+- `/` routes to the frontend container.
+- `/api`, `/share`, and `/api-docs` route to the backend container.
+- If port `8080` is busy, change the host mapping in `docker-compose.yml`.
 
 ## API Documentation (Swagger)
 
@@ -204,6 +206,9 @@ The OpenAPI config lives in:
 - Restrict CORS `FRONTEND_URL` to your production client domain.
 - Rotate Supabase and JWT keys periodically.
 - Add centralized logging and monitoring before production rollout.
+- Rate limiting is enabled:
+  - Global API: `200 requests / 15 minutes` per IP
+  - Auth endpoints (`/api/auth/login`, `/api/auth/register`): `10 requests / 15 minutes` per IP
 
 ## Troubleshooting
 

@@ -12,11 +12,15 @@ const folderRoute = require("./routes/folders");
 const shareRoute = require("./routes/share");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
+const { apiLimiter } = require('./middleware/rateLimiter');
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT || 3000);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-insecure-session-secret';
+
+// Required when running behind nginx/reverse proxies to get real client IP.
+app.set('trust proxy', 1);
 
 app.use(cors({
   origin: FRONTEND_URL,
@@ -51,6 +55,7 @@ app.use(
 
 app.use(passport.initialize());
 app.use(passport.session());
+app.use(['/api', '/share'], apiLimiter);
 
 // Routes
 app.use('/api/auth', authRoute);
