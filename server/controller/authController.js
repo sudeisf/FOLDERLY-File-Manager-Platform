@@ -2,6 +2,14 @@ const {PrismaClient} = require('@prisma/client')
 const prisma = new PrismaClient();
 const uitls = require('../utils/utils')
 
+const isProduction = process.env.NODE_ENV === 'production';
+const tokenCookieOptions = {
+    httpOnly: true,
+    secure: isProduction,
+    sameSite: process.env.SESSION_COOKIE_SAMESITE || 'lax',
+    maxAge: 1000 * 60 * 60 * 24,
+};
+
 const loginController = async (req, res) => {
 
     try{
@@ -16,7 +24,7 @@ const loginController = async (req, res) => {
             return res.status(401).send({message: 'Invalid password'});
         }
         const token =  uitls.issueToken(user);
-        res.cookie("token", token, {httpOnly: true});
+        res.cookie("token", token, tokenCookieOptions);
         return res.status(200).send({token: token , success: true});
     }catch(e){
         return res.status(500).send({message: e.message});
@@ -35,7 +43,7 @@ const registerController = async (req, res) => {
             }
         });
         const token = uitls.issueToken(user);
-        res.cookie("token", token, {httpOnly: true});
+        res.cookie("token", token, tokenCookieOptions);
         return res.status(200).send({success: true,message: 'User created successfully'});
     } catch(e){
         return res.status(500).send({message: e.message});

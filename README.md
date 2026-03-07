@@ -52,12 +52,21 @@ npm install
 
 ### 2. Configure environment variables
 
-Create `server/.env` with:
+Use the provided templates first:
+
+```bash
+cp server/.env.example server/.env
+cp client/.env.example client/.env
+```
+
+Then update `server/.env` with your real values:
 
 ```env
 PORT=3000
+NODE_ENV=development
 FRONTEND_URL=http://localhost:5173
 SESSION_SECRET=replace-with-a-strong-secret
+SESSION_COOKIE_SAMESITE=lax
 DATABASE_URL=your-mongodb-connection-string
 SUPABASE_URL=your-supabase-project-url
 SUPABASE_ANON_KEY=your-anon-key
@@ -102,6 +111,13 @@ The project includes container setup for both frontend and backend:
 
 ### Build and run
 
+Before first deploy, ensure:
+
+- `server/.env` exists (copy from `server/.env.example`)
+- `server/utils/private.pem` and `server/utils/public.pem` exist
+
+Start all services:
+
 ```bash
 docker compose up --build
 ```
@@ -116,6 +132,11 @@ Service URLs:
 
 - App (via Nginx): `http://localhost:8080`
 - Swagger (via Nginx): `http://localhost:8080/api-docs`
+
+Health checks:
+
+- Backend: `http://localhost:8080/healthz` (proxied to server)
+- Client container internal health: `http://client/healthz`
 
 ### Useful commands
 
@@ -201,9 +222,11 @@ The OpenAPI config lives in:
 
 ## Production Notes
 
-- Set `NODE_ENV=production` and use HTTPS.
-- Use a strong `SESSION_SECRET`.
-- Restrict CORS `FRONTEND_URL` to your production client domain.
+- Set `NODE_ENV=production` in `server/.env`.
+- Set `FRONTEND_URL` to your real public domain (or comma-separated domains).
+- Use HTTPS and terminate TLS at a reverse proxy/load balancer.
+- Use a strong `SESSION_SECRET` (32+ random bytes).
+- Keep `SESSION_COOKIE_SAMESITE=lax` for same-site deployments. If frontend/backend are on different sites, use `none` and HTTPS.
 - Rotate Supabase and JWT keys periodically.
 - Add centralized logging and monitoring before production rollout.
 - Rate limiting is enabled:
