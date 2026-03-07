@@ -52,7 +52,7 @@ const uploadFile = async (req, res) => {
        
 
 
-        const fileContent = fs.readFileSync(file.path);;
+        const fileContent = file.buffer;
         const { data, error } = await Sstorage.from("Files-uploader").upload(
             `${user.sub}/${folderName}/${file.originalname}`,
             fileContent,
@@ -80,11 +80,6 @@ const uploadFile = async (req, res) => {
                 userId: user.sub, // User ID
                 size: parseInt(file.size, 10), // File size
             },
-        });
-
-        
-        await fs.promises.unlink(file.path).catch((err) => {
-            console.error('Failed to delete local file:', err);
         });
 
         // Step 5: Return success response

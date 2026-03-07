@@ -2,7 +2,7 @@ const router = require('express').Router();
 const multer = require('multer');
 const passport = require('../config/passportConfig');
 const uploaderController = require('../controller/uploadController');
-const upload = multer({ dest: 'uploads/' });
+const upload = multer({ storage: multer.memoryStorage() });
 const authenticateUser = require('../middleware/authenticator');
 
 router.post(
