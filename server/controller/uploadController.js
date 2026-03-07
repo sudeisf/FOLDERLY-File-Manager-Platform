@@ -3,6 +3,7 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { v4: uuidv4 } = require('uuid');
 const { Readable } = require('stream');
+const archiver = require('archiver');
 
 const path = require('path');
 const fs = require('fs');
@@ -277,4 +278,174 @@ const downloadFile = async (req, res) => {
       }
     }
   };
-module.exports = {uploadFile, getFile, deleteFile , downloadFile}; // CommonJS syntax for export
+
+const viewFile = async (req, res) => {
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.status(401).send('Unauthorized');
+            }
+
+            const { folderName, fileUid } = req.params;
+            const uid = String(fileUid);
+
+            const folder = await prisma.folder.findFirst({
+                where: {
+                    name: folderName,
+                    userId: user.sub,
+                },
+            });
+
+            if (!folder) {
+                return res.status(404).send('Folder not found');
+            }
+
+            const file = await prisma.file.findFirst({
+                where: {
+                    uid: uid,
+                    folderId: folder.id,
+                    userId: folder.userId,
+                },
+            });
+
+            if (!file) {
+                return res.status(404).send('File not found');
+            }
+
+            const { data, error } = await Sstorage.from("Files-uploader").download(file.url);
+            if (error) {
+                console.error('Supabase view error:', error.message);
+                return res.status(400).send('Failed to open file');
+            }
+
+            if (!data || data.size === 0) {
+                return res.status(400).send('File is empty or invalid');
+            }
+
+            const arrayBuffer = await data.arrayBuffer();
+            const buffer = Buffer.from(arrayBuffer);
+            if (buffer.length === 0) {
+                return res.status(400).send('File buffer is empty');
+            }
+
+            const fileStream = Readable.from(buffer);
+            const originalName = decodeURIComponent(file.name.trim());
+            const safeName = originalName
+                .replace(/[\r\n]/g, '')
+                .replace(/[\\/]/g, '-')
+                .replace(/"/g, "'");
+            const encodedName = encodeURIComponent(safeName);
+            const mimeType = data.type || 'application/octet-stream';
+
+            res.setHeader('Content-Type', mimeType);
+            res.setHeader('Content-Disposition', `inline; filename="${safeName}"; filename*=UTF-8''${encodedName}`);
+            res.setHeader('Content-Length', buffer.length);
+
+            fileStream.on('error', (streamError) => {
+                console.error('Stream error:', streamError.message);
+                if (!res.headersSent) {
+                    res.status(500).send('Failed to stream file');
+                }
+            });
+
+            fileStream.pipe(res);
+        } catch (error) {
+            console.error('Internal server error:', error.message);
+            if (!res.headersSent) {
+                res.status(500).send('Internal server error');
+            }
+        }
+};
+
+const downloadFolderZip = async (req, res) => {
+        try {
+            const user = req.user;
+            if (!user) {
+                return res.status(401).send('Unauthorized');
+            }
+
+            const { folderName } = req.params;
+
+            const folder = await prisma.folder.findFirst({
+                where: {
+                    name: folderName,
+                    userId: user.sub,
+                },
+            });
+
+            if (!folder) {
+                return res.status(404).send('Folder not found');
+            }
+
+            const files = await prisma.file.findMany({
+                where: {
+                    folderId: folder.id,
+                    userId: folder.userId,
+                },
+                select: {
+                    name: true,
+                    url: true,
+                },
+            });
+
+            if (!files.length) {
+                return res.status(404).send('No files found in folder');
+            }
+
+            const safeFolderName = String(folderName)
+                .replace(/[\r\n]/g, '')
+                .replace(/[\\/]/g, '-')
+                .replace(/"/g, "'")
+                .trim() || 'folder';
+
+            res.setHeader('Content-Type', 'application/zip');
+            res.setHeader('Content-Disposition', `attachment; filename="${safeFolderName}.zip"`);
+
+            const archive = archiver('zip', { zlib: { level: 9 } });
+
+            archive.on('error', (error) => {
+                console.error('Zip archive error:', error.message);
+                if (!res.headersSent) {
+                    res.status(500).send('Failed to create zip');
+                }
+            });
+
+            archive.pipe(res);
+
+            let appendedCount = 0;
+
+            for (const file of files) {
+                const { data, error } = await Sstorage.from('Files-uploader').download(file.url);
+                if (error || !data) {
+                    console.error(`Failed to download file for zip (${file.name}):`, error?.message || 'Unknown error');
+                    continue;
+                }
+
+                const buffer = Buffer.from(await data.arrayBuffer());
+                if (!buffer.length) {
+                    continue;
+                }
+
+                const safeFileName = String(file.name)
+                    .replace(/[\r\n]/g, '')
+                    .replace(/[\\/]/g, '-')
+                    .trim() || `file-${appendedCount + 1}`;
+
+                archive.append(buffer, { name: safeFileName });
+                appendedCount += 1;
+            }
+
+            if (!appendedCount) {
+                archive.append('No downloadable files were available in this folder.', { name: 'README.txt' });
+            }
+
+            await archive.finalize();
+        } catch (error) {
+            console.error('Internal server error:', error.message);
+            if (!res.headersSent) {
+                return res.status(500).send('Internal server error');
+            }
+        }
+};
+
+module.exports = {uploadFile, getFile, deleteFile , downloadFile, viewFile, downloadFolderZip}; // CommonJS syntax for export

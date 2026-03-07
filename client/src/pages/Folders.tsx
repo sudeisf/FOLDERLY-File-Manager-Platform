@@ -13,12 +13,13 @@ import {
     MenubarMenu,
     MenubarTrigger,
   } from "@/components/ui/menubar"
-import { Download, EllipsisVertical, Folder, Share, Trash } from "lucide-react";
+import { Download, EllipsisVertical, Eye, Folder, FolderDown, Share, Trash } from "lucide-react";
 import svg from "@/assets/svg-svgrepo-com.svg";
 import docx from "@/assets/docx-file-format-symbol-svgrepo-com.svg";
 import pptx from "@/assets/ppt-svgrepo-com.svg";
 import png from "@/assets/png-file-type-svgrepo-com.svg";
 import jpg from "@/assets/jpeg-svgrepo-com.svg";
+import pdf from "@/assets/xml-svgrepo-com.svg";
 
 import { Key } from "react";
 import { useFolder } from "@/hooks/useFolder";
@@ -44,6 +45,7 @@ const getDownloadFileName = (contentDisposition: string): string => {
   return basicMatch?.[1] || 'download';
 };
 interface Folder {
+  id: string;
   name: string;
   files: { 
     name: string;
@@ -65,10 +67,11 @@ export default function Folders() {
           "image/jpeg": jpg,
           "image/png": png,
           "image/svg+xml": svg,
+          "application/pdf": pdf,
           "application/vnd.openxmlformats-officedocument.wordprocessingml.document": docx,
           "application/vnd.openxmlformats-officedocument.presentationml.presentation": pptx,
         };
-        return fileTypes[file.type];
+        return fileTypes[file.type] || pdf;
       };
 
       const formatFileSize = (size: number): string => {
@@ -111,14 +114,17 @@ export default function Folders() {
           }
       }
 
+      const fetchFileBlob = async (folderName: string, fileId: string) => {
+        const APIURl = import.meta.env.VITE_API_URL;
+        return axios.get(`${APIURl}/api/files/download/${folderName}/${fileId}`, {
+          withCredentials: true,
+          responseType: 'blob',
+        });
+      }
+
       const handleDownload = async (folderName: string, fileId: string) => {
         try{
-
-            const APIURl = import.meta.env.VITE_API_URL;
-            const response = await axios.get(`${APIURl}/api/files/download/${folderName}/${fileId}`,{
-              withCredentials: true,
-              responseType: 'blob',
-            });
+            const response = await fetchFileBlob(folderName, fileId);
 
             const url = window.URL.createObjectURL(response.data);
             const link = document.createElement('a');
@@ -152,6 +158,93 @@ export default function Folders() {
           });
         }
       }
+
+      const handleView = async (folderName: string, fileId: string) => {
+        try {
+          const APIURl = import.meta.env.VITE_API_URL;
+          const viewUrl = `${APIURl}/api/files/view/${encodeURIComponent(folderName)}/${encodeURIComponent(fileId)}`;
+          const opened = window.open(viewUrl, '_blank', 'noopener,noreferrer');
+          if (!opened) {
+            throw new Error('Popup blocked by browser');
+          }
+
+          toast({
+            title: "Opened",
+            description: "File opened in a new tab",
+            variant: "default",
+          });
+        } catch (error) {
+          console.log(error);
+          toast({
+            title: "File view failed",
+            description: `Could not open file in browser`,
+            variant: "destructive",
+            duration: 3000,
+          });
+        }
+      }
+
+      const handleShare = async (folderId: string) => {
+        try {
+          const API_URL = import.meta.env.VITE_API_URL;
+          const response = await axios.post(`${API_URL}/share/${folderId}`, {}, {
+            withCredentials: true,
+          });
+
+          const shareLink = response.data?.link;
+          if (!shareLink) {
+            throw new Error('Share link was not returned');
+          }
+
+          if (navigator?.clipboard?.writeText) {
+            await navigator.clipboard.writeText(shareLink);
+          }
+          toast({
+            title: "Share link copied",
+            description: shareLink,
+            variant: "default",
+          });
+        } catch (error: any) {
+          console.log(error);
+          toast({
+            title: "Share failed",
+            description: error?.response?.data || error?.message || 'Could not create share link',
+            variant: "destructive",
+          });
+        }
+      }
+
+      const handleDownloadFolderZip = async (folderName: string) => {
+        try {
+          const API_URL = import.meta.env.VITE_API_URL;
+          const response = await axios.get(`${API_URL}/api/files/download-folder/${encodeURIComponent(folderName)}`, {
+            withCredentials: true,
+            responseType: 'blob',
+          });
+
+          const zipBlobUrl = window.URL.createObjectURL(response.data);
+          const link = document.createElement('a');
+          link.href = zipBlobUrl;
+          link.setAttribute('download', `${folderName}.zip`);
+          document.body.appendChild(link);
+          link.click();
+          link.remove();
+          setTimeout(() => window.URL.revokeObjectURL(zipBlobUrl), 100);
+
+          toast({
+            title: 'ZIP ready',
+            description: `${folderName}.zip is downloading`,
+            variant: 'default',
+          });
+        } catch (error: any) {
+          console.log(error);
+          toast({
+            title: 'Folder download failed',
+            description: error?.response?.data || error?.message || 'Could not download folder as ZIP',
+            variant: 'destructive',
+          });
+        }
+      }
   
     return (
       <>
@@ -162,9 +255,22 @@ export default function Folders() {
             {data?.map((folder: Folder, index: Key | null | undefined)  => (
               <AccordionItem key={index} value={`item-${index}`}>
                 <AccordionTrigger className="border-2 p-4 rounded-md border-black">
-                  <div className="flex gap-2 items-center">
+                  <div className="flex w-full items-center justify-between pr-2">
+                    <div className="flex gap-2 items-center">
                     <Folder className="w-5 h-5" />
                     <h3>{folder.name}</h3>
+                    </div>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={(e) => {
+                        e.preventDefault();
+                        e.stopPropagation();
+                        handleDownloadFolderZip(folder.name);
+                      }}
+                    >
+                      <FolderDown className="w-4 h-4 mr-1" /> ZIP
+                    </Button>
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 pl-4 pt-2">
@@ -188,8 +294,13 @@ export default function Folders() {
                           </MenubarTrigger>
                           <MenubarContent className="flex flex-col w-8">
                             <MenubarItem className="flex">
-                              <Button variant="ghost" className="w-fit">
+                              <Button onClick={() => handleShare(folder.id)} variant="ghost" className="w-fit">
                               <Share className="w-4" /> Share
+                              </Button>
+                            </MenubarItem>
+                            <MenubarItem className="flex items-center">
+                              <Button onClick={() => handleView(folder.name, file.id)} variant="ghost" className="w-fit">
+                                <Eye className="w-4" /> View
                               </Button>
                             </MenubarItem>
                             <MenubarItem  className="text-red-700 flex items-center">

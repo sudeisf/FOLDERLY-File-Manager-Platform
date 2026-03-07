@@ -48,6 +48,18 @@ router.get(
     uploaderController.downloadFile
 );
 
+router.get(
+    '/view/:folderName/:fileUid',
+    authenticateUser,
+    uploaderController.viewFile
+);
+
+router.get(
+    '/download-folder/:folderName',
+    authenticateUser,
+    uploaderController.downloadFolderZip
+);
+
 
 router.delete(
     '/delete/:folderName/:fileUid',

@@ -1,6 +1,7 @@
 
 
 const router = require('express').Router();
+const authenticateUser = require('../middleware/authenticator');
 const {
     GenerateShareLink,
     AccessShared
@@ -12,7 +13,7 @@ const {
 
 
 router.get('/:uuid', AccessShared);
-router.post('/:folderId',GenerateShareLink);
+router.post('/:folderId', authenticateUser, GenerateShareLink);
 
 
 
