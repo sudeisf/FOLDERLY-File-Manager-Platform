@@ -1,4 +1,5 @@
 const express = require('express');
+require('dotenv').config();
 const app = express();
 const session = require('express-session');
 const passport = require('passport');
@@ -9,11 +10,16 @@ const cors = require('cors');
 const fileRoute = require("./routes/files");
 const folderRoute = require("./routes/folders");
 const shareRoute = require("./routes/share");
+const swaggerUi = require('swagger-ui-express');
+const swaggerSpec = require('./docs/swagger');
 
 const prisma = new PrismaClient();
+const PORT = Number(process.env.PORT || 3000);
+const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
+const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-insecure-session-secret';
 
 app.use(cors({
-  origin: 'http://localhost:5173' || process.env.FRONTEND_URL,  
+  origin: FRONTEND_URL,
   credentials: true,              
   allowedHeaders: ['Content-Type', 'Authorization', 'Set-Cookie'],  
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH'],  
@@ -26,11 +32,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
-    secret: 'secret',
+    secret: SESSION_SECRET,
     resave: false,
     saveUninitialized: false,
     cookie: {
-      secure:false,  
+      secure: process.env.NODE_ENV === 'production',
       httpOnly: true,
       sameSite: 'strict',
       maxAge: 1000 * 60 * 60 * 24,  
@@ -51,8 +57,9 @@ app.use('/api/auth', authRoute);
 app.use('/api/files', fileRoute);
 app.use('/api/folders', folderRoute);
 app.use('/share', shareRoute);
+app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Start server
-app.listen(3000, () => {
-  console.log('Server is running on port 3000');
+app.listen(PORT, () => {
+  console.log(`Server is running on port ${PORT}`);
 });

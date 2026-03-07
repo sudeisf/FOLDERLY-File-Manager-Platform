@@ -11,7 +11,7 @@ router.get('/logout', (req, res) => {
             console.error('Error destroying session:', err);
         }
     }); 
-    req.clearCookie('jwt');
+    res.clearCookie('token');
     res.status(200).send({success: true, message: 'Logout successful'});
 });
 
