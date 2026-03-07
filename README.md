@@ -86,6 +86,77 @@ npm run dev
 Frontend default URL: `http://localhost:5173`
 Backend default URL: `http://localhost:3000`
 
+## Docker
+
+The project includes container setup for both frontend and backend:
+
+- `server/Dockerfile`
+- `client/Dockerfile`
+- `docker-compose.yml`
+
+### Prerequisites
+
+- Docker Desktop (or Docker Engine + Compose plugin)
+- `server/.env` configured with valid values (especially DB and Supabase)
+
+### Build and run
+
+```bash
+docker compose up --build
+```
+
+Run in background:
+
+```bash
+docker compose up -d --build
+```
+
+Service URLs:
+
+- Frontend: `http://localhost:5173`
+- Backend: `http://localhost:3000`
+- Swagger: `http://localhost:3000/api-docs`
+
+### Useful commands
+
+View logs:
+
+```bash
+docker compose logs -f
+```
+
+Rebuild only one service:
+
+```bash
+docker compose build server
+docker compose build client
+```
+
+Restart a single service:
+
+```bash
+docker compose restart server
+docker compose restart client
+```
+
+Stop containers:
+
+```bash
+docker compose down
+```
+
+Stop and remove named volumes (if added later):
+
+```bash
+docker compose down -v
+```
+
+### Notes
+
+- Client image is served by Nginx on container port `80` and mapped to host `5173`.
+- Server runs on container port `3000` and is mapped to host `3000`.
+- If ports are busy, change host mappings in `docker-compose.yml`.
+
 ## API Documentation (Swagger)
 
 Swagger UI is available at:
