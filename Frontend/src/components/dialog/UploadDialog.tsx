@@ -42,11 +42,22 @@ export default function UploadComponet({ file }: Props) {
 
   const createFolderHandler = async (e: any) => {
     e.preventDefault()
+    const trimmedName = folderName.trim()
+
+    if (!trimmedName) {
+      toast({
+        title: "Error",
+        description: "Folder name is required",
+        variant: "destructive",
+      })
+      return
+    }
+
     setCreateFolderLoading(true)
     try {
       const API_URL = import.meta.env.VITE_API_URL;
-      const res = await axios.post(`${API_URL}/api/folders/create-folder`, {
-        name: folderName 
+      const res = await axios.post(API_URL + '/api/folders/create-folder', {
+        name: trimmedName 
       }, {
         withCredentials: true,
       })
@@ -57,21 +68,22 @@ export default function UploadComponet({ file }: Props) {
         setFolderId(res.data.folderID)
         toast({
           title: "Success",
-          description: 'Folder created successfully',
+          description: res.data?.message || 'Folder created successfully',
           variant: "default",
         })
         serCreateBtnDisable(true)
-        setCreateFolderLoading(false)
-        }
-    } catch (err) {
+      }
+    } catch (err: any) {
+      const apiMessage = err?.response?.data?.message || err?.response?.data || err?.message || 'Request failed'
       console.error(err)
       toast({
         title: "Error",
-        description: 'An error occurred',
+        description: String(apiMessage),
         variant: "destructive",
       })
+    } finally {
       setCreateFolderLoading(false)
-        }
+    }
   }
 
   const uploadFile = async (e: any) => {

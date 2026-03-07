@@ -31,44 +31,53 @@ import { useState } from "react";
 export default function Home() {
   const savedTab = localStorage.getItem("selecetedTab") || "upload";
   const [folderName, setFolderName] = useState<string>("")
-  const [uploadLoading, setUploadLoading] = useState<boolean>(false)
-  const [createFolderLoading, setCreateFolderLoading] = useState<boolean>(false)
+    const [createFolderLoading, setCreateFolderLoading] = useState<boolean>(false)
 
   const handleTabChange = (value: string) => {
     localStorage.setItem("selecetedTab", value);
   };
 
   const createFolderHandler = async (e: any) => {
-    e.preventDefault()
-    setCreateFolderLoading(true)
-    try {
-      const API_URL = import.meta.env.VITE_API_URL;
-      const res = await axios.post(`${API_URL}/api/folders/create-folder`, {
-        name: folderName 
-      }, {
-        withCredentials: true,
-      })
-      
-      if (res.status === 200) {
-        setCreateFolderLoading(false)
-        toast({
-          title: "Success",
-          description: 'Folder created successfully',
-          variant: "default",
-        })
-      }
-    } catch (err) {
-      console.error(err)
+    e.preventDefault();
+    const trimmedName = folderName.trim();
+
+    if (!trimmedName) {
       toast({
         title: "Error",
-        description: 'An error occurred',
+        description: "Folder name is required",
         variant: "destructive",
-      })
-    }finally{
-      setCreateFolderLoading(false)
+      });
+      return;
+    }
+
+    setCreateFolderLoading(true);
+    try {
+      const API_URL = import.meta.env.VITE_API_URL;
+      const res = await axios.post(
+        `${API_URL}/api/folders/create-folder`,
+        { name: trimmedName },
+        { withCredentials: true }
+      );
+
+      if (res.status === 200) {
+        toast({
+          title: "Success",
+          description: res.data?.message || "Folder created successfully",
+          variant: "default",
+        });
+      }
+    } catch (err: any) {
+      const apiMessage = err?.response?.data?.message || err?.response?.data || err?.message || 'Request failed';
+      console.error(err);
+      toast({
+        title: "Error",
+        description: String(apiMessage),
+        variant: "destructive",
+      });
+    } finally {
+      setCreateFolderLoading(false);
     }
   }
-
 
   return (
     <Tabs

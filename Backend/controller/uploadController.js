@@ -53,7 +53,7 @@ const uploadFile = async (req, res) => {
 
 
         const fileContent = fs.readFileSync(file.path);;
-        const { data, error } = await Sstorage.from("users-files").upload(
+        const { data, error } = await Sstorage.from("Files-uploader").upload(
             `${user.sub}/${folderName}/${file.originalname}`,
             fileContent,
             {
@@ -176,7 +176,7 @@ const deleteFile = async (req, res) => {
             return res.status(404).send('File not found');
         }
         
-        const { data, error } = await Sstorage.from("users-files").remove([file.url]);
+        const { data, error } = await Sstorage.from("Files-uploader").remove([file.url]);
         if (error) {
             console.error('Supabase delete error:', error.message);
             return res.status(400).send('Failed to delete file');
@@ -232,7 +232,7 @@ const downloadFile = async (req, res) => {
         return res.status(404).send('File not found');
       }
   
-      const { data, error } = await Sstorage.from("users-files").download(file.url);
+      const { data, error } = await Sstorage.from("Files-uploader").download(file.url);
       if (error) {
         console.error('Supabase download error:', error.message);
         return res.status(400).send('Failed to download file');

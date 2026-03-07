@@ -2,56 +2,70 @@ const{PrismaClient} = require('@prisma/client');
 const storage = require('../config/supabaseConfig');
 const prisma = new PrismaClient();
 
-const  createFolder = async (req, res) => {
+const createFolder = async (req, res) => {
     try {
-        const name = req.body.name;
-        console.log(name);
+        const name = (req.body?.name || '').trim();
         const user = req.user;
-        if(!user){
+        const userId = user?.sub || user?.id;
+
+        if (!userId) {
             return res.status(401).send('Unauthorized');
         }
-        const exstingFolder = await prisma.folder.findFirst({
+
+        if (!name) {
+            return res.status(400).send('Folder name is required');
+        }
+
+        const existingFolder = await prisma.folder.findFirst({
             where: {
-                name: name,
-                userId: user.sub,
+                name,
+                userId,
             },
         });
-        if (exstingFolder) {
+
+        if (existingFolder) {
             return res.status(400).send('Folder already exists');
         }
+
         const folder = await prisma.folder.create({
             data: {
-                userId: user.sub,
-                name: name
+                userId,
+                name,
             },
         });
 
-        if(folder){
+        // Do not fail folder creation if storage sync is temporarily unavailable.
+        let storageBucket = null;
+        let storageWarning = null;
 
-            const placeHolderFile = new Blob(["placeholder file"], { type: 'text/plain' });
-            const { data, error } = await storage.from("users-files").upload(
-                `${user.sub}/${folder.name}/readme.txt`, placeHolderFile
-            );if (error) {    
-                console.error('Supabase create bucket error:', error.message);
-                return res.status(400).send('Failed to create folder');
+        try {
+            const placeHolderFile = new Blob(['placeholder file'], { type: 'text/plain' });
+            const { data, error } = await storage.from('Files-uploader').upload(
+                `${userId}/${folder.name}/readme.txt`,
+                placeHolderFile
+            );
+
+            if (error) {
+                storageWarning = `Storage sync failed: ${error.message}`;
+            } else {
+                storageBucket = data;
             }
-            return res.status(200).json({
-                success: true,
-                message: 'Folder created successfully',
-                folderID : folder.id,
-                storageBucket: data, 
-            });
+        } catch (storageError) {
+            storageWarning = `Storage sync failed: ${storageError.message}`;
         }
-        else{
-            return res.status(400).send('Failed to create folder');
-        }
-    }   
-    catch (error) {
+
+        return res.status(200).json({
+            success: true,
+            message: storageWarning ? 'Folder created, but storage sync failed' : 'Folder created successfully',
+            folderID: folder.id,
+            storageBucket,
+            storageWarning,
+        });
+    } catch (error) {
         console.error('Internal server error:', error.message);
         return res.status(500).send('Internal server error');
     }
 }
-
 
 const getFolders = async (req, res) => {
     try {
@@ -76,7 +90,7 @@ const getFolders = async (req, res) => {
                 const folderPath = `${user.sub}/${foldername}`.replace(/\/$/, "");
                 try {
                     const { data, error } = await storage
-                        .from("users-files")
+                        .from("Files-uploader")
                         .list(folderPath, { limit: 100 , offset : 0,  sortBy: { column: 'name', order: 'asc' }
                         }); 
 
@@ -180,7 +194,7 @@ const updateFolder = async (req, res) => {
             },
         });
         
-        const {data: files, error: listError } = await storage.from("users-files").update(`$${user.sub}/${folder.name}`, req.body.name);
+        const {data: files, error: listError } = await storage.from("Files-uploader").update(`$${user.sub}/${folder.name}`, req.body.name);
 
         return res.status(200).json(folder);
        
@@ -208,7 +222,7 @@ const deleteFolder = async (req, res) => {
         if (!folder || folder.user_id !== user.id) {
             return res.status(404).send('Folder not found or access denied');
         }
-        const { data: files, error: listError } = await storage.from('users-files').list('',{ limit: 100 , recursive: true });
+        const { data: files, error: listError } = await storage.from('Files-uploader').list('',{ limit: 100 , recursive: true });
         if(listError){
             console.error('Supabase list bucket error:', filesError.message);
             return res.status(400).send('Failed to delete folder');
@@ -216,7 +230,7 @@ const deleteFolder = async (req, res) => {
     
         if(files.length > 0){
             const filePath  = files.map((file) => file.name);
-            const {error: deleteFileError}  = await storage.from('users-files').remove();
+            const {error: deleteFileError}  = await storage.from('Files-uploader').remove();
             if(deleteFileError){
                 console.error('Supabase delete file error:', deleteFileError.message);
                 return res.status(400).send('Failed to delete folder');
