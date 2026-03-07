@@ -6,6 +6,7 @@ import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { Link } from "react-router-dom"
 import axios from "axios"
+import type { AxiosError } from "axios"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
@@ -49,9 +50,10 @@ export default function Login() {
                 localStorage.setItem("isLoggedIn", "true");
                 navigate("/protected/home");
             }
-        }catch(e: any){
-            console.log(e)
-            const message = e?.response?.data?.message || e?.message || "Login failed";
+        }catch(e: unknown){
+            const err = e as AxiosError<{ message?: string }>;
+            console.log(err)
+            const message = err.response?.data?.message || err.message || "Login failed";
             toast({
                 title: "Error",
                 description: message,

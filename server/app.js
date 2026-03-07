@@ -22,8 +22,12 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 const SESSION_COOKIE_SAMESITE = process.env.SESSION_COOKIE_SAMESITE || (IS_PRODUCTION ? 'lax' : 'lax');
 const allowedOrigins = FRONTEND_URL.split(',').map((origin) => origin.trim()).filter(Boolean);
 
+if (IS_PRODUCTION && SESSION_SECRET === 'dev-insecure-session-secret') {
+  throw new Error('SESSION_SECRET must be set in production');
+}
+
 // Required when running behind nginx/reverse proxies to get real client IP.
-app.set('trust proxy', 1);
+app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : 1);
 
 app.use(
   cors({

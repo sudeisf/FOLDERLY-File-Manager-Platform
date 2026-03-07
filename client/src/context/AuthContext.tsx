@@ -11,7 +11,7 @@ type AuthContextType = {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 const fetchAuthStatus = async (): Promise<{ success: boolean }> => {
-  const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/Protected`, {
+  const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/protected`, {
     withCredentials: true,
   });
   // Backend responses can be either { success } or { data: { success } }.

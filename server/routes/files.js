@@ -5,8 +5,8 @@ const { handleUpload } = require('../utils/uploadUtils');
 
 router.post(
     '/file',
-        handleUpload,
     authenticateUser,
+    handleUpload,
     uploaderController.uploadFile
 );
 

@@ -23,8 +23,7 @@ export const useFolder = () => {
     {
         queryKey: ["folders"],
         queryFn: fetchFolders,
-        staleTime: 5000,
-        refetchInterval: 5000,
+        staleTime: 30000,
         refetchOnWindowFocus: true,
     });
 

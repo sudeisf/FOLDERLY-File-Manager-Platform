@@ -5,6 +5,7 @@ import {zodResolver} from "@hookform/resolvers/zod"
 import {  useForm } from "react-hook-form"
 import { Form , FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import axios from "axios"
+import type { AxiosError } from "axios"
 import { useToast } from "@/hooks/use-toast"
 import { useNavigate } from "react-router-dom"
 import { useState } from "react";   
@@ -45,9 +46,10 @@ export default function Register() {
                 setLoading(false);
                 navigate("/login");
             }
-        }catch(e: any){
-            console.log(e)
-            const message = e?.response?.data?.message || e?.message || "Registration failed";
+        }catch(e: unknown){
+            const err = e as AxiosError<{ message?: string }>;
+            console.log(err)
+            const message = err.response?.data?.message || err.message || "Registration failed";
             toast({
                 title: "Error",
                 description: message,

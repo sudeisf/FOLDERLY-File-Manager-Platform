@@ -1,6 +1,8 @@
-const{PrismaClient} = require('@prisma/client');
+const { PrismaClient } = require('@prisma/client');
 const storage = require('../config/supabaseConfig');
 const prisma = new PrismaClient();
+
+const getUserId = (user) => user?.sub || user?.id;
 
 const createFolder = async (req, res) => {
     try {
@@ -65,50 +67,44 @@ const createFolder = async (req, res) => {
         console.error('Internal server error:', error.message);
         return res.status(500).send('Internal server error');
     }
-}
+};
 
 const getFolders = async (req, res) => {
     try {
-        const user = req.user;
-        if (!user) {
+        const userId = getUserId(req.user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
         }
 
         const folders = await prisma.folder.findMany({
             where: {
-                userId: user.id,
+                userId,
             }
         });
 
         if (!folders || folders.length === 0) {
-            return res.status(404).send('No folders found');
+            return res.status(200).json([]);
         }
 
         const folderDetails = await Promise.all(
             folders.map(async (folder) => {
                 const foldername = folder.name;
-                const folderPath = `${user.sub}/${foldername}`.replace(/\/$/, "");
+                const folderPath = `${userId}/${foldername}`.replace(/\/$/, '');
                 try {
                     const { data, error } = await storage
-                        .from("Files-uploader")
-                        .list(folderPath, { limit: 100 , offset : 0,  sortBy: { column: 'name', order: 'asc' }
+                        .from('Files-uploader')
+                        .list(folderPath, { limit: 100, offset: 0, sortBy: { column: 'name', order: 'asc' }
                         }); 
 
                     if (error) {
                         console.error(`Error fetching files for folder ${foldername}:`, error.message);
                         return {
                             ...folder,
-                            files: [{
-                                name: 'error',
-                                size: 0,
-                                url: 'error',
-                                type: 'error',
-                            }],
+                            files: [],
                         };
                     }
 
                     if (!data || data.length === 0) {
-                        console.log(`No files found in folder: ${foldername}`);
                         return {
                             ...folder,
                             files: [],
@@ -126,12 +122,7 @@ const getFolders = async (req, res) => {
                     console.error(`Error processing folder ${foldername}:`, error.message);
                     return {
                         ...folder,
-                        files: [{
-                            name: 'error',
-                            size: 0,
-                            url: 'error',
-                            type: 'error',
-                        }],
+                        files: [],
                     };
                 }
             })
@@ -147,25 +138,24 @@ const getFolders = async (req, res) => {
 
 const getFoldersName = async (req, res) => {
     try {
-        const user = req.user;
-        if (!user) {
+        const userId = getUserId(req.user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
         }
 
         const folders = await prisma.folder.findMany({
             where: {
-                userId: user.id,
+                userId,
             },
             select: {
-                name: true, // Only select the folder names
+                name: true,
             }
         });
 
         if (!folders || folders.length === 0) {
-            return res.status(404).send('No folders found');
+            return res.status(200).json([]);
         }
 
-        // Only return folder names
         const folderNames = folders.map(folder => folder.name);
 
         return res.status(200).json(folderNames);
@@ -179,83 +169,116 @@ const getFoldersName = async (req, res) => {
 
 
 
-const updateFolder = async (req, res) => {    
+const updateFolder = async (req, res) => {
     try {
-        const user = req.user;
-        if(!user){
+        const userId = getUserId(req.user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
-        }    
-        const folder = await PrismaClient.folder.update({
+        }
+
+        const newName = (req.body?.name || '').trim();
+        if (!newName) {
+            return res.status(400).send('Folder name is required');
+        }
+
+        const existing = await prisma.folder.findFirst({
+            where: {
+                id: req.params.id,
+                userId,
+            },
+        });
+
+        if (!existing) {
+            return res.status(404).send('Folder not found');
+        }
+
+        const duplicate = await prisma.folder.findFirst({
+            where: {
+                userId,
+                name: newName,
+                id: { not: req.params.id },
+            },
+        });
+
+        if (duplicate) {
+            return res.status(409).send('A folder with this name already exists');
+        }
+
+        const folder = await prisma.folder.update({
             where: {
                 id: req.params.id,
             },
             data: {
-                name: req.body.name,
+                name: newName,
             },
         });
-        
-        const {data: files, error: listError } = await storage.from("Files-uploader").update(`$${user.sub}/${folder.name}`, req.body.name);
 
         return res.status(200).json(folder);
-       
     } catch (error) {
         console.error('Internal server error:', error.message);
         return res.status(500).send('Internal server error');
     }
-}   
+};
 
 
 
-const deleteFolder = async (req, res) => {    
-    try{
-        const user = req.user;
-        if(!user){
+const deleteFolder = async (req, res) => {
+    try {
+        const userId = getUserId(req.user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
-        }    
-        const folder = await PrismaClient.folder.findUnique({
+        }
+
+        const folder = await prisma.folder.findFirst({
             where: {
                 id: req.params.id,
+                userId,
             },
         });
-        
-        // Check if the folder exists and belongs to the user   
-        if (!folder || folder.user_id !== user.id) {
-            return res.status(404).send('Folder not found or access denied');
+
+        if (!folder) {
+            return res.status(404).send('Folder not found');
         }
-        const { data: files, error: listError } = await storage.from('Files-uploader').list('',{ limit: 100 , recursive: true });
-        if(listError){
-            console.error('Supabase list bucket error:', filesError.message);
-            return res.status(400).send('Failed to delete folder');
-        }
-    
-        if(files.length > 0){
-            const filePath  = files.map((file) => file.name);
-            const {error: deleteFileError}  = await storage.from('Files-uploader').remove();
-            if(deleteFileError){
+
+        const files = await prisma.file.findMany({
+            where: {
+                folderId: folder.id,
+                userId,
+            },
+            select: {
+                id: true,
+                url: true,
+            },
+        });
+
+        if (files.length > 0) {
+            const filePaths = files.map((file) => file.url);
+            const { error: deleteFileError } = await storage.from('Files-uploader').remove(filePaths);
+            if (deleteFileError) {
                 console.error('Supabase delete file error:', deleteFileError.message);
-                return res.status(400).send('Failed to delete folder');
+                return res.status(400).send('Failed to delete folder files');
             }
-        }  
 
-        const {error: bucketError} = await storage.deleteBucket(folder.id);
-        if(bucketError){
-            console.error('Supabase delete bucket error:', bucketError.message);
-            return res.status(400).send('Failed to delete folder');
+            await prisma.file.deleteMany({
+                where: {
+                    folderId: folder.id,
+                    userId,
+                },
+            });
         }
 
-        await PrismaClient.folder.delete({
+        await prisma.folder.delete({
             where: {
                 id: req.params.id,
             },
         });
+
         return res.status(200).send('Folder deleted successfully');
-
-
-    }catch (error) {
+    } catch (error) {
         console.error('Internal server error:', error.message);
         return res.status(500).send('Internal server error');
     }
-}   
+};
 
 module.exports = {
     createFolder, 

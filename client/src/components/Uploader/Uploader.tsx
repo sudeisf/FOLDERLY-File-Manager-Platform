@@ -2,6 +2,7 @@ import { useRef, useState } from "react";
 import { Input } from "../ui/input";
 import uploader from "@/assets/uploader.svg";
 import { z } from "zod";
+import { ZodError } from "zod";
 import { toast } from "@/hooks/use-toast";
 import svg from "@/assets/svg-svgrepo-com.svg";
 import docx from "@/assets/docx-file-format-symbol-svgrepo-com.svg";
@@ -67,10 +68,11 @@ export default function Uploader() {
         description: `${selectedFile.name} uploaded successfully`,
         variant: "default",
       });
-    } catch (error: any) {
+    } catch (error: unknown) {
+      const validationError = error as ZodError;
       toast({
         title: "Error",
-        description: error.errors?.[0]?.message || "Invalid file",
+        description: validationError.errors?.[0]?.message || "Invalid file",
         variant: "destructive",
       });
     }

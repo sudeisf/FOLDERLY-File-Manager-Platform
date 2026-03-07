@@ -18,8 +18,10 @@ import Uploader from "@/components/Uploader/Uploader"
 import Folder from "@/pages/Folders"
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
+import type { AxiosError } from "axios";
 import { Loader2 } from "lucide-react";
 import { useState } from "react";
+import type { FormEvent } from "react";
 
 
 
@@ -35,7 +37,7 @@ export default function Home() {
     localStorage.setItem("selecetedTab", value);
   };
 
-  const createFolderHandler = async (e: any) => {
+  const createFolderHandler = async (e: FormEvent<HTMLButtonElement>) => {
     e.preventDefault();
     const trimmedName = folderName.trim();
 
@@ -64,9 +66,13 @@ export default function Home() {
           variant: "default",
         });
       }
-    } catch (err: any) {
-      const apiMessage = err?.response?.data?.message || err?.response?.data || err?.message || 'Request failed';
-      console.error(err);
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string } | string>;
+      const apiMessage =
+        typeof axiosErr.response?.data === 'string'
+          ? axiosErr.response.data
+          : axiosErr.response?.data?.message || axiosErr.message || 'Request failed';
+      console.error(axiosErr);
       toast({
         title: "Error",
         description: String(apiMessage),

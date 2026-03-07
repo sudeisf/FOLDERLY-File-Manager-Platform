@@ -25,6 +25,7 @@ import { Key } from "react";
 import { useFolder } from "@/hooks/useFolder";
 import { toast } from "@/hooks/use-toast";
 import axios from "axios";
+import type { AxiosError } from "axios";
 import { Button } from "@/components/ui/button";
 
 const getDownloadFileName = (contentDisposition: string): string => {
@@ -49,7 +50,8 @@ interface Folder {
   name: string;
   files: { 
     name: string;
-    id: string;
+    uid?: string;
+    id?: string;
      metadata: {
       originalName: string;
       mimetype: string;
@@ -60,8 +62,7 @@ interface Folder {
 
 
 export default function Folders() {
-    const {data,isLoading} = useFolder();
-    console.log(data);
+  const {data,isLoading, refetch} = useFolder();
     const setFileIconFunction = (file: { name: string; type: string }): string | undefined => {
         const fileTypes: Record<string, string> = {
           "image/jpeg": jpg,
@@ -84,11 +85,10 @@ export default function Folders() {
       };
 
 
-      const handleDelete = async (folderName: string, fileId: string) => {
-        console.log(folderName, fileId);
+      const handleDelete = async (folderName: string, fileUid: string) => {
           try{
                 const API_URL = import.meta.env.VITE_API_URL;
-                const data = await axios.delete(`${API_URL}/api/files/delete/${folderName}/${fileId}` , {
+                const data = await axios.delete(`${API_URL}/api/files/delete/${folderName}/${fileUid}` , {
                  withCredentials: true,
                 });
                 if(data.status === 200){
@@ -97,6 +97,7 @@ export default function Folders() {
                     description: "File deleted successfully",
                     variant: "default",
                   });
+                  await refetch();
                 } else {
                   toast({
                     title: "File deletion failed",
@@ -114,17 +115,17 @@ export default function Folders() {
           }
       }
 
-      const fetchFileBlob = async (folderName: string, fileId: string) => {
+      const fetchFileBlob = async (folderName: string, fileUid: string) => {
         const APIURl = import.meta.env.VITE_API_URL;
-        return axios.get(`${APIURl}/api/files/download/${folderName}/${fileId}`, {
+        return axios.get(`${APIURl}/api/files/download/${folderName}/${fileUid}`, {
           withCredentials: true,
           responseType: 'blob',
         });
       }
 
-      const handleDownload = async (folderName: string, fileId: string) => {
+      const handleDownload = async (folderName: string, fileUid: string) => {
         try{
-            const response = await fetchFileBlob(folderName, fileId);
+            const response = await fetchFileBlob(folderName, fileUid);
 
             const url = window.URL.createObjectURL(response.data);
             const link = document.createElement('a');
@@ -159,10 +160,10 @@ export default function Folders() {
         }
       }
 
-      const handleView = async (folderName: string, fileId: string) => {
+      const handleView = async (folderName: string, fileUid: string) => {
         try {
           const APIURl = import.meta.env.VITE_API_URL;
-          const viewUrl = `${APIURl}/api/files/view/${encodeURIComponent(folderName)}/${encodeURIComponent(fileId)}`;
+          const viewUrl = `${APIURl}/api/files/view/${encodeURIComponent(folderName)}/${encodeURIComponent(fileUid)}`;
           const opened = window.open(viewUrl, '_blank', 'noopener,noreferrer');
           if (!opened) {
             throw new Error('Popup blocked by browser');
@@ -204,11 +205,16 @@ export default function Folders() {
             description: shareLink,
             variant: "default",
           });
-        } catch (error: any) {
-          console.log(error);
+        } catch (error: unknown) {
+          const err = error as AxiosError<{ message?: string } | string>;
+          console.log(err);
+          const message =
+            typeof err.response?.data === 'string'
+              ? err.response.data
+              : err.response?.data?.message || err.message || 'Could not create share link';
           toast({
             title: "Share failed",
-            description: error?.response?.data || error?.message || 'Could not create share link',
+            description: message,
             variant: "destructive",
           });
         }
@@ -236,11 +242,16 @@ export default function Folders() {
             description: `${folderName}.zip is downloading`,
             variant: 'default',
           });
-        } catch (error: any) {
-          console.log(error);
+        } catch (error: unknown) {
+          const err = error as AxiosError<{ message?: string } | string>;
+          console.log(err);
+          const message =
+            typeof err.response?.data === 'string'
+              ? err.response.data
+              : err.response?.data?.message || err.message || 'Could not download folder as ZIP';
           toast({
             title: 'Folder download failed',
-            description: error?.response?.data || error?.message || 'Could not download folder as ZIP',
+            description: message,
             variant: 'destructive',
           });
         }
@@ -274,7 +285,13 @@ export default function Folders() {
                   </div>
                 </AccordionTrigger>
                 <AccordionContent className="flex flex-col gap-4 pl-4 pt-2">
-                  {folder.files.map((file, i) => (
+                  {folder.files.map((file, i) => {
+                    const fileKey = file.uid || file.id;
+                    if (!fileKey) {
+                      return null;
+                    }
+
+                    return (
                     <div key={i} className="w-[90%] bg-[#d3d0d01f] text-white px-1 pl-2 rounded-lg flex items-center justify-between shadow-sm">
                       <div className="flex text-black gap-2 items-center p-2">
                         <img
@@ -299,17 +316,17 @@ export default function Folders() {
                               </Button>
                             </MenubarItem>
                             <MenubarItem className="flex items-center">
-                              <Button onClick={() => handleView(folder.name, file.id)} variant="ghost" className="w-fit">
+                              <Button onClick={() => handleView(folder.name, fileKey)} variant="ghost" className="w-fit">
                                 <Eye className="w-4" /> View
                               </Button>
                             </MenubarItem>
                             <MenubarItem  className="text-red-700 flex items-center">
-                              <Button onClick={() => handleDelete(folder.name,file.id)} variant="ghost" className="text-red-700 w-fit">
+                              <Button onClick={() => handleDelete(folder.name,fileKey)} variant="ghost" className="text-red-700 w-fit">
                                 <Trash className="w-4" /> Delete
                               </Button>
                             </MenubarItem>
                             <MenubarItem className="flex items-center">
-                              <Button onClick={() => handleDownload(folder.name,file.id)} variant="ghost" className="w-fit">
+                              <Button onClick={() => handleDownload(folder.name,fileKey)} variant="ghost" className="w-fit">
                                 <Download className="w-4" /> Download
                               </Button>
                             </MenubarItem>
@@ -317,7 +334,8 @@ export default function Folders() {
                         </MenubarMenu>
                       </Menubar>
                     </div>
-                  ))}
+                    );
+                  })}
                 </AccordionContent>
               </AccordionItem>
             ))}

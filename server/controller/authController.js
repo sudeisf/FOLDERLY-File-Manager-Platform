@@ -24,8 +24,8 @@ const loginController = async (req, res) => {
             return res.status(401).send({message: 'Invalid password'});
         }
         const token =  uitls.issueToken(user);
-        res.cookie("token", token, tokenCookieOptions);
-        return res.status(200).send({token: token , success: true});
+        res.cookie("token", token.token, tokenCookieOptions);
+        return res.status(200).send({ success: true, message: 'Login successful' });
     }catch(e){
         return res.status(500).send({message: e.message});
     }
@@ -43,8 +43,8 @@ const registerController = async (req, res) => {
             }
         });
         const token = uitls.issueToken(user);
-        res.cookie("token", token, tokenCookieOptions);
-        return res.status(200).send({success: true,message: 'User created successfully'});
+        res.cookie("token", token.token, tokenCookieOptions);
+        return res.status(200).send({ success: true, message: 'User created successfully' });
     } catch(e){
         return res.status(500).send({message: e.message});
     }

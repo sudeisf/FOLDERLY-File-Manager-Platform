@@ -14,8 +14,10 @@ import { Label } from "@/components/ui/label"
 import add from '@/assets/add-ellipse-svgrepo-com.svg'
 import Combobox  from "../combo/Combobox"
 import axios from "axios"
+import type { AxiosError } from "axios"
 import { toast } from "@/hooks/use-toast"
 import { useState } from "react"
+import type { FormEvent } from "react"
 import { Loader2 } from "lucide-react"
 
 
@@ -36,10 +38,9 @@ export default function UploadComponet({ file }: Props) {
 
   const handleFolderChange = (folder: string) => {
     setSelectedFolder(folder)
-    console.log("Selected Folder:", folder) // Here you get the selected folder
   }
 
-  const createFolderHandler = async (e: any) => {
+  const createFolderHandler = async (e: FormEvent<HTMLButtonElement>) => {
     e.preventDefault()
     const trimmedName = folderName.trim()
 
@@ -62,7 +63,6 @@ export default function UploadComponet({ file }: Props) {
       })
       
       if (res.status === 200) {
-        console.log(res.data)
         setFolderId(res.data.folderID)
         setSelectedFolder(trimmedName)
         setFolderName("")
@@ -73,9 +73,13 @@ export default function UploadComponet({ file }: Props) {
           variant: "default",
         })
       }
-    } catch (err: any) {
-      const apiMessage = err?.response?.data?.message || err?.response?.data || err?.message || 'Request failed'
-      console.error(err)
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string } | string>
+      const apiMessage =
+        typeof axiosErr.response?.data === 'string'
+          ? axiosErr.response.data
+          : axiosErr.response?.data?.message || axiosErr.message || 'Request failed'
+      console.error(axiosErr)
       toast({
         title: "Error",
         description: String(apiMessage),
@@ -86,7 +90,7 @@ export default function UploadComponet({ file }: Props) {
     }
   }
 
-  const uploadFile = async (e: any) => {
+  const uploadFile = async (e: FormEvent<HTMLButtonElement>) => {
     e.preventDefault()
     if (!file) {
       toast({
@@ -97,7 +101,6 @@ export default function UploadComponet({ file }: Props) {
       return
     }
 
-    console.log(file)
     setLoading(true)
     try {
       const folder = selectedFolder || folderName.trim() || 'public'
@@ -130,11 +133,15 @@ export default function UploadComponet({ file }: Props) {
         setLoading(false)
         setIsOpen(false);
       }
-    } catch (err: any) {
-      
+    } catch (err: unknown) {
+      const axiosErr = err as AxiosError<{ message?: string } | string>
+      const errorMessage =
+        typeof axiosErr.response?.data === 'string'
+          ? axiosErr.response.data
+          : axiosErr.response?.data?.message || axiosErr.message || 'Upload failed'
       toast({
         title: 'Failed',
-        description: `${err.response.data} happened`,
+        description: String(errorMessage),
         variant: "destructive"
       })
     } finally{

@@ -1,29 +1,21 @@
 const Sstorage = require('../config/supabaseConfig');
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
-const { v4: uuidv4 } = require('uuid');
 const { Readable } = require('stream');
 const archiver = require('archiver');
 
-const path = require('path');
-const fs = require('fs');
-
-
-
-
-const pathToKey = path.join(__dirname, '../utils/', 'private.pem');
-console.log(pathToKey);
-const PRIV_KEY = fs.readFileSync(pathToKey, 'utf8');
+const getUserId = (user) => user?.sub || user?.id;
 
 
 const uploadFile = async (req, res) => {
-    const { folderID,  folder } = req.body;
+    const { folder } = req.body;
     const user = req.user;
     const file = req.file;
 
     try {
      
-        if (!user) {
+        const userId = getUserId(user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
         }
 
@@ -38,7 +30,7 @@ const uploadFile = async (req, res) => {
         let folderRecord = await prisma.folder.findFirst({
             where: {
                 name: folderName,
-                userId: user.sub,
+                userId,
             },
         });
 
@@ -46,7 +38,7 @@ const uploadFile = async (req, res) => {
             folderRecord = await prisma.folder.create({
                 data: {
                     name: folderName,
-                    userId: user.sub,
+                    userId,
                 },
             });
         }
@@ -55,7 +47,7 @@ const uploadFile = async (req, res) => {
 
         const fileContent = file.buffer;
         const { data, error } = await Sstorage.from("Files-uploader").upload(
-            `${user.sub}/${folderName}/${file.originalname}`,
+            `${userId}/${folderName}/${file.originalname}`,
             fileContent,
             {
                 contentType: file.mimetype,
@@ -79,7 +71,7 @@ const uploadFile = async (req, res) => {
                 folderId: folderRecord.id, // Store the ID of the folder
                 name: file.originalname,
                 url: data.path, // Supabase URL
-                userId: user.sub, // User ID
+                userId, // User ID
                 size: parseInt(file.size, 10), // File size
             },
         });
@@ -144,7 +136,8 @@ const getFile = async (req, res) => {
 const deleteFile = async (req, res) => {
     try {
         const user = req.user;
-        if (!user) {
+        const userId = getUserId(user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
         }
 
@@ -154,7 +147,7 @@ const deleteFile = async (req, res) => {
         const folder = await prisma.folder.findFirst({
             where: {
                 name: folderName,
-                userId: user.id,
+                userId,
             },
         });
         
@@ -182,9 +175,8 @@ const deleteFile = async (req, res) => {
             await prisma.file.delete({
                 where: {
                     id: file.id,
-                userId: user.id,
-            },
-        }); 
+                },
+            });
         return res.status(200).send('File deleted successfully');   
         }
 
@@ -200,7 +192,8 @@ const deleteFile = async (req, res) => {
 const downloadFile = async (req, res) => {
     try {
       const user = req.user;
-      if (!user) {
+            const userId = getUserId(user);
+            if (!userId) {
         return res.status(401).send('Unauthorized');
       }
     
@@ -210,7 +203,7 @@ const downloadFile = async (req, res) => {
       const folder = await prisma.folder.findFirst({
         where: {
           name: folderName,
-          userId: user.sub,
+                    userId,
         },
       });
       
@@ -234,8 +227,6 @@ const downloadFile = async (req, res) => {
         console.error('Supabase download error:', error.message);
         return res.status(400).send('Failed to download file');
       }
-      console.log(data)
-  
       if (!data || data.size === 0) {
         return res.status(400).send('File is empty or invalid');
       }
@@ -259,9 +250,7 @@ const downloadFile = async (req, res) => {
       
       res.setHeader('Content-Type', 'application/octet-stream');
             res.setHeader('Content-Disposition', `attachment; filename="${safeName}"; filename*=UTF-8''${encodedName}`);
-      console.log(file.name)
       res.setHeader('Content-Length', file.size);
-      console.log(file.name , file.size)
       fileStream.on('error', (streamError) => {
         console.error('Stream error:', streamError.message);
         if (!res.headersSent) {
@@ -282,7 +271,8 @@ const downloadFile = async (req, res) => {
 const viewFile = async (req, res) => {
         try {
             const user = req.user;
-            if (!user) {
+            const userId = getUserId(user);
+            if (!userId) {
                 return res.status(401).send('Unauthorized');
             }
 
@@ -292,7 +282,7 @@ const viewFile = async (req, res) => {
             const folder = await prisma.folder.findFirst({
                 where: {
                     name: folderName,
-                    userId: user.sub,
+                    userId,
                 },
             });
 
@@ -360,7 +350,8 @@ const viewFile = async (req, res) => {
 const downloadFolderZip = async (req, res) => {
         try {
             const user = req.user;
-            if (!user) {
+            const userId = getUserId(user);
+            if (!userId) {
                 return res.status(401).send('Unauthorized');
             }
 
@@ -369,7 +360,7 @@ const downloadFolderZip = async (req, res) => {
             const folder = await prisma.folder.findFirst({
                 where: {
                     name: folderName,
-                    userId: user.sub,
+                    userId,
                 },
             });
 
