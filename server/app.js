@@ -3,6 +3,7 @@ require('dotenv').config();
 const app = express();
 const session = require('express-session');
 const passport = require('passport');
+require('./config/passportConfig');
 const { PrismaClient } = require('@prisma/client');
 const { PrismaSessionStore } = require('@quixo3/prisma-session-store');
 const authRoute = require('./routes/auth');
@@ -13,9 +14,10 @@ const shareRoute = require("./routes/share");
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 const { apiLimiter } = require('./middleware/rateLimiter');
+const { initializeEmailWorker } = require('./workers/emailWorker');
 
 const prisma = new PrismaClient();
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 3001);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-insecure-session-secret';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -90,6 +92,8 @@ app.get('/healthz', (_req, res) => {
 module.exports = app;
 
 if (require.main === module) {
+  initializeEmailWorker();
+
   const server = app.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });

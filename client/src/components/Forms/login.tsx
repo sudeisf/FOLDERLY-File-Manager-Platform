@@ -26,6 +26,12 @@ export default function Login() {
     const {setIsLoggedIn} = useAuth();
     const [loading, setLoading] = useState(false);
 
+    const handleGoogleLogin = () => {
+        const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+        const googleAuthUrl = apiBase ? `${apiBase}/api/auth/google` : '/api/auth/google';
+        window.location.href = googleAuthUrl;
+    };
+
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -126,6 +132,7 @@ export default function Login() {
                             <Button
                                 type="button"
                                 variant="outline"
+                                onClick={handleGoogleLogin}
                                 className="h-11 w-full rounded-lg border-[#cbcbcb] bg-white text-[#111216] hover:bg-[#f5f5f5]"
                             >
                                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f3f3f3] text-xs font-semibold text-[#171717]">
@@ -139,9 +146,9 @@ export default function Login() {
                 footer={
                     <>
                         Forget password?{' '}
-                        <button type="button" className="font-semibold text-[#171717] underline">
+                        <Link to="/forgot-password" className="font-semibold text-[#171717] underline">
                             Click here
-                        </button>
+                        </Link>
                     </>
                 }
             />

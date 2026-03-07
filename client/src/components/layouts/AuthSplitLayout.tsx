@@ -54,4 +54,4 @@ export default function AuthSplitLayout({ title, subtitle, form, footer }: AuthS
       </div>
     </div>
   );
-}
+}   

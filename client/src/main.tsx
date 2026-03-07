@@ -5,6 +5,7 @@ import App from './App.tsx';
 import { createBrowserRouter, RouterProvider, Navigate } from 'react-router-dom';
 import Login from './components/Forms/login.tsx';
 import Register from './components/Forms/SignIn.tsx';
+import ForgotPassword from './pages/ForgotPassword.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
 import ProtectedLayout from './components/layouts/ProtectedLayout.tsx';
 import Home from './pages/home.tsx';
@@ -32,6 +33,10 @@ const router = createBrowserRouter([
       {
         path: "register",
         element: <Register />,
+      },
+      {
+        path: "forgot-password",
+        element: <ForgotPassword />,
       },
       {
         path: "protected",

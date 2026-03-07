@@ -12,16 +12,30 @@ model User {
   username String    @unique
   password String
   email    String    @unique
-  sessions Session[]
   folders  Folder[]
   files    File[]
 }
 
 model Session {
-  id      String   @id @default(auto()) @map("_id") @db.ObjectId
-  userId  String   @db.ObjectId
-  user    User     @relation(fields: [userId], references: [id])
-  expires DateTime
+  id        String   @id @map("_id")
+  sid       String   @unique
+  data      String
+  expiresAt DateTime
+
+  @@index([expiresAt])
+}
+
+model PasswordResetOtp {
+  id             String    @id @default(auto()) @map("_id") @db.ObjectId
+  email          String
+  otpHash        String
+  resetTokenHash String?
+  expiresAt      DateTime
+  verifiedAt     DateTime?
+  usedAt         DateTime?
+  createdAt      DateTime  @default(now())
+
+  @@index([email, createdAt])
 }
 
 model Folder {

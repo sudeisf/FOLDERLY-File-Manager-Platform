@@ -31,6 +31,12 @@ export default function Register() {
         },
     })
 
+    const handleGoogleLogin = () => {
+        const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
+        const googleAuthUrl = apiBase ? `${apiBase}/api/auth/google` : '/api/auth/google';
+        window.location.href = googleAuthUrl;
+    }
+
 
     async function onSubmit(values: z.infer<typeof formSchema>) { 
         try{
@@ -139,6 +145,7 @@ export default function Register() {
                             <Button
                                 type="button"
                                 variant="outline"
+                                onClick={handleGoogleLogin}
                                 className="h-11 w-full rounded-lg border-[#cbcbcb] bg-white text-[#111216] hover:bg-[#f5f5f5]"
                             >
                                 <span className="inline-flex h-5 w-5 items-center justify-center rounded-full bg-[#f3f3f3] text-xs font-semibold text-[#171717]">

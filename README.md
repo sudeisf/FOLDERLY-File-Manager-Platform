@@ -71,12 +71,16 @@ DATABASE_URL=your-mongodb-connection-string
 SUPABASE_URL=your-supabase-project-url
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
+GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
+GOOGLE_CLIENT_SECRET=your-google-client-secret
+GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
 ```
 
 Notes:
 
 - Keep `SUPABASE_SERVICE_ROLE_KEY` in backend only.
 - Ensure your `private.pem` / `public.pem` keys exist in `server/utils/`.
+- For Google login, configure the callback URL in Google Cloud Console exactly as `GOOGLE_CALLBACK_URL`.
 
 ### 3. Run backend
 
@@ -214,6 +218,8 @@ The OpenAPI config lives in:
 
 - `POST /api/auth/register`
 - `POST /api/auth/login`
+- `GET /api/auth/google`
+- `GET /api/auth/google/callback`
 - `GET /api/auth/logout`
 - `GET /api/auth/protected`
 

@@ -1,17 +1,11 @@
 const passport = require('passport');
-const JwtStrategy = require('passport-jwt').Strategy;
-const ExtractJwt = require('passport-jwt').ExtractJwt;
-const path = require('path');
-const fs = require('fs');
+const { Strategy: GoogleStrategy } = require('passport-google-oauth20');
+const crypto = require('crypto');
 const { PrismaClient } = require('@prisma/client');
+const utils = require('../utils/utils');
 
 const prismaClient = new PrismaClient();
 
-// Load the public key for JWT verification (RS256)
-const pathToPubKey = path.join(__dirname, '../utils', 'public.pem');
-const publicKey = fs.readFileSync(pathToPubKey, 'utf8');
-
-// Passport serialization and deserialization
 passport.serializeUser((user, done) => {
   done(null, user.id);
 });
@@ -19,55 +13,83 @@ passport.serializeUser((user, done) => {
 passport.deserializeUser(async (id, done) => {
   try {
     const user = await prismaClient.user.findUnique({
-      where: {
-        id: id,
-      },
+      where: { id },
     });
-    done(null, user);
+    done(null, user || null);
   } catch (error) {
-    console.error('Error deserializing user:', error);
     done(error, null);
   }
 });
 
-// JWT strategy options
-const opts = {
-  jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
-  secretOrKey: publicKey,  // Public key for verifying JWT signature
-  algorithms: ['RS256'],   // Specify the algorithm used for signing the JWT
+const googleClientID = process.env.GOOGLE_CLIENT_ID;
+const googleClientSecret = process.env.GOOGLE_CLIENT_SECRET;
+const googleCallbackURL = process.env.GOOGLE_CALLBACK_URL || 'http://localhost:3001/api/auth/google/callback';
+
+const createUniqueUsername = async (seed) => {
+  const cleanSeed = (seed || 'googleuser')
+    .toLowerCase()
+    .replace(/[^a-z0-9]/g, '')
+    .slice(0, 14) || 'googleuser';
+
+  let candidate = `g_${cleanSeed}`;
+  let attempt = 1;
+
+  while (true) {
+    const existing = await prismaClient.user.findUnique({
+      where: { username: candidate },
+      select: { id: true },
+    });
+
+    if (!existing) {
+      return candidate;
+    }
+
+    attempt += 1;
+    candidate = `g_${cleanSeed}${attempt}`.slice(0, 30);
+  }
 };
 
-// JWT Strategy (used to authenticate using JWT tokens)
-passport.use(
-  new JwtStrategy(opts, async (jwt_payload, done) => {
-    try {
-      console.log('Decoded JWT Payload:', jwt_payload);  // Log the payload for debugging
+if (googleClientID && googleClientSecret) {
+  passport.use(
+    new GoogleStrategy(
+      {
+        clientID: googleClientID,
+        clientSecret: googleClientSecret,
+        callbackURL: googleCallbackURL,
+      },
+      async (_accessToken, _refreshToken, profile, done) => {
+        try {
+          const email = profile.emails?.[0]?.value?.toLowerCase();
+          if (!email) {
+            return done(new Error('Google account email is required'), null);
+          }
 
-      // Check if the required fields exist in the payload (e.g., sub)
-      if (!jwt_payload || !jwt_payload.sub) {
-        console.error('JWT Payload is missing expected fields:', jwt_payload);
-        return done(null, false);  // Reject if required fields are missing
+          let user = await prismaClient.user.findUnique({
+            where: { email },
+          });
+
+          if (!user) {
+            const usernameSeed = profile.displayName || email.split('@')[0];
+            const username = await createUniqueUsername(usernameSeed);
+            const randomSecret = crypto.randomBytes(32).toString('hex');
+            const hashedPassword = await utils.generatePassword(randomSecret);
+
+            user = await prismaClient.user.create({
+              data: {
+                username,
+                email,
+                password: hashedPassword,
+              },
+            });
+          }
+
+          return done(null, user);
+        } catch (error) {
+          return done(error, null);
+        }
       }
-
-      // Look up the user using the sub field (or your unique field)
-      const user = await prismaClient.user.findUnique({
-        where: {
-          id: jwt_payload.sub,  // Use the sub field as the user's ID
-        },
-      });
-
-      if (user) {
-        console.log('User found:', user);  // Log user found for debugging
-        return done(null, user);  // Successful authentication
-      } else {
-        console.log('User not found with ID:', jwt_payload.sub);
-        return done(null, false);  // User not found, authentication failed
-      }
-    } catch (err) {
-      console.error('Error during authentication:', err);
-      return done(err, false);  // Handle any errors during authentication
-    }
-  })
-);
+    )
+  );
+}
 
 module.exports = passport;

@@ -1,4 +1,4 @@
-const PORT = Number(process.env.PORT || 3000);
+const PORT = Number(process.env.PORT || 3001);
 
 const swaggerSpec = {
   openapi: '3.0.3',
