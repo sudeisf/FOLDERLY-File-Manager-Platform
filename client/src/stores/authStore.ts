@@ -1,4 +1,4 @@
-import axios from "axios"
+import { authApi } from "@/api/auth"
 import { create } from "zustand"
 import { persist } from "zustand/middleware"
 
@@ -26,8 +26,6 @@ type AuthStoreActions = {
 }
 
 type AuthStore = AuthStoreState & AuthStoreActions
-
-const API_URL = import.meta.env.VITE_API_URL
 
 function extractAuthPayload(data: unknown): { token: string | null; user: AuthUser | null; success: boolean } {
   const payload = (data as { data?: unknown } | undefined)?.data ?? data
@@ -86,10 +84,8 @@ export const useAuthStore = create<AuthStore>()(
       checkAuthStatus: async () => {
         set({ loading: true })
         try {
-          const response = await axios.get(`${API_URL}/api/auth/protected`, {
-            withCredentials: true,
-          })
-          const { token, user, success } = extractAuthPayload(response.data)
+          const data = await authApi.protectedStatus()
+          const { token, user, success } = extractAuthPayload(data)
           set((state) => ({
             token: token ?? state.token,
             user: user ?? state.user,
@@ -102,9 +98,7 @@ export const useAuthStore = create<AuthStore>()(
       },
       logout: async () => {
         try {
-          await axios.get(`${API_URL}/api/auth/logout`, {
-            withCredentials: true,
-          })
+          await authApi.logout()
         } finally {
           set({ token: null, user: null, isLoggedIn: false, loading: false })
         }

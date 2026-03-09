@@ -1,6 +1,10 @@
 import { useMemo, useState } from "react"
-import axios from "axios"
 
+import {
+  useDeleteFileMutation,
+  useShareFolderMutation,
+  useUploadFileMutation,
+} from "@/api/hooks/useFileManagerMutations"
 import { useFolder } from "@/hooks/useFolder"
 import { toast } from "@/hooks/use-toast"
 
@@ -33,7 +37,9 @@ export type FileManagerModel = {
 export const useFileManagerModel = (): FileManagerModel => {
   const { data, isLoading, refetch } = useFolder()
   const folders = (data ?? []) as FolderItem[]
-  const API_URL = import.meta.env.VITE_API_URL
+  const uploadMutation = useUploadFileMutation()
+  const deleteMutation = useDeleteFileMutation()
+  const shareMutation = useShareFolderMutation()
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
@@ -85,19 +91,14 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
 
     const normalizedFolderName = folderName.trim() || "public"
-    const formData = new FormData()
-    formData.append("file", file)
-    formData.append("folder", normalizedFolderName)
 
     try {
       setIsUploading(true)
       setUploadProgress(0)
 
-      await axios.post(`${API_URL}/api/files/file`, formData, {
-        withCredentials: true,
-        headers: {
-          "Content-Type": "multipart/form-data",
-        },
+      await uploadMutation.mutateAsync({
+        file,
+        folderName: normalizedFolderName,
         onUploadProgress: (event) => {
           if (!event.total) {
             return
@@ -141,9 +142,7 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
 
     try {
-      await axios.delete(`${API_URL}/api/files/delete/${encodeURIComponent(activeFolder.name)}/${encodeURIComponent(fileUid)}`, {
-        withCredentials: true,
-      })
+      await deleteMutation.mutateAsync({ folderName: activeFolder.name, fileUid })
       await refreshFolders()
       setSelectedFileId(null)
       toast({
@@ -166,14 +165,8 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
 
     try {
-      const response = await axios.post(
-        `${API_URL}/share/${activeFolder.id}`,
-        {},
-        {
-          withCredentials: true,
-        }
-      )
-      const link = response.data?.link
+      const response = await shareMutation.mutateAsync(activeFolder.id)
+      const link = response?.link
       if (typeof link === "string" && link.length > 0 && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link)
       }

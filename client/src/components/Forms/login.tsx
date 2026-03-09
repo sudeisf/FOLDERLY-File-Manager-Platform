@@ -5,13 +5,12 @@ import {zodResolver} from "@hookform/resolvers/zod"
 import { useForm } from "react-hook-form"
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
 import { Link } from "react-router-dom"
-import axios from "axios"
 import type { AxiosError } from "axios"
+import { useLoginMutation } from "@/api/hooks/useAuthMutations"
 import { useToast } from "@/hooks/use-toast"
 import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { Loader2 } from "lucide-react"
-import { useState } from "react"
 import AuthSplitLayout from "@/components/layouts/AuthSplitLayout"
 const formSchema = z.object({
     username: z.string().min(3),
@@ -25,7 +24,8 @@ export default function Login() {
     const navigate = useNavigate();
     const location = useLocation();
     const { setIsLoggedIn, setSession } = useAuth();
-    const [loading, setLoading] = useState(false);
+    const loginMutation = useLoginMutation();
+    const loading = loginMutation.isPending;
     const redirectTo = (location.state as { from?: string } | null)?.from ?? "/protected/home";
 
     const handleGoogleLogin = () => {
@@ -45,12 +45,14 @@ export default function Login() {
 
    async function onSubmit(values: z.infer<typeof formSchema>) { 
         try{
-            setLoading(true);
-            const API_URL  = import.meta.env.VITE_API_URL;
-            const response  = await axios.post(`${API_URL}/api/auth/login`, values ,{withCredentials: true});
-            const data = response.data;
+            const data = await loginMutation.mutateAsync(values);
             if(data.success){
-                                const authData = data?.data ?? data;
+                                const authData = (data?.data ?? data) as {
+                                    token?: string
+                                    accessToken?: string
+                                    jwt?: string
+                                    user?: { id?: string; username?: string; email?: string }
+                                };
                                 const token = authData?.token ?? authData?.accessToken ?? authData?.jwt;
                                 const user = authData?.user;
 
@@ -86,9 +88,6 @@ export default function Login() {
                 description: message,
                 variant: "destructive",
             })
-            setLoading(false);
-        }finally{
-            setLoading(false);
         }
     }
 

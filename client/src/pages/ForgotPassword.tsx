@@ -1,12 +1,16 @@
 import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import axios from "axios";
 import type { AxiosError } from "axios";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useForm } from "react-hook-form";
 import { Loader2 } from "lucide-react";
 
+import {
+  useForgotPasswordRequestMutation,
+  useForgotPasswordResetMutation,
+  useForgotPasswordVerifyMutation,
+} from "@/api/hooks/useAuthMutations";
 import AuthSplitLayout from "@/components/layouts/AuthSplitLayout";
 import { Button } from "@/components/ui/button";
 import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
@@ -33,7 +37,6 @@ const RESEND_COOLDOWN_SECONDS = 60;
 
 export default function ForgotPassword() {
   const [step, setStep] = useState<ForgotStep>("email");
-  const [loading, setLoading] = useState(false);
   const [otp, setOtp] = useState("");
   const [email, setEmail] = useState("");
   const [resetToken, setResetToken] = useState("");
@@ -41,7 +44,10 @@ export default function ForgotPassword() {
 
   const { toast } = useToast();
   const navigate = useNavigate();
-  const apiBase = import.meta.env.VITE_API_URL;
+  const forgotRequestMutation = useForgotPasswordRequestMutation();
+  const forgotVerifyMutation = useForgotPasswordVerifyMutation();
+  const forgotResetMutation = useForgotPasswordResetMutation();
+  const loading = forgotRequestMutation.isPending || forgotVerifyMutation.isPending || forgotResetMutation.isPending;
 
   const emailForm = useForm<z.infer<typeof emailSchema>>({
     resolver: zodResolver(emailSchema),
@@ -85,17 +91,14 @@ export default function ForgotPassword() {
 
   const requestOtp = async (values: z.infer<typeof emailSchema>) => {
     try {
-      setLoading(true);
       const normalizedEmail = values.email.trim().toLowerCase();
-      await axios.post(`${apiBase}/api/auth/forgot-password/request`, { email: normalizedEmail }, { withCredentials: true });
+      await forgotRequestMutation.mutateAsync({ email: normalizedEmail });
       setEmail(normalizedEmail);
       setStep("otp");
       setResendCooldown(RESEND_COOLDOWN_SECONDS);
       toast({ title: "OTP sent", description: "Check your email for the 6-digit code." });
     } catch (error) {
       toast({ title: "Error", description: getErrorMessage(error, "Failed to send OTP"), variant: "destructive" });
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -106,44 +109,30 @@ export default function ForgotPassword() {
     }
 
     try {
-      setLoading(true);
-      const response = await axios.post(
-        `${apiBase}/api/auth/forgot-password/verify`,
-        { email, otp },
-        { withCredentials: true }
-      );
+      const response = await forgotVerifyMutation.mutateAsync({ email, otp });
 
-      if (response.data?.resetToken) {
-        setResetToken(response.data.resetToken);
+      if (response?.resetToken) {
+        setResetToken(response.resetToken);
         setStep("password");
         toast({ title: "OTP verified", description: "Create your new password." });
       }
     } catch (error) {
       toast({ title: "Error", description: getErrorMessage(error, "OTP verification failed"), variant: "destructive" });
-    } finally {
-      setLoading(false);
     }
   };
 
   const resetPassword = async (values: z.infer<typeof passwordSchema>) => {
     try {
-      setLoading(true);
-      await axios.post(
-        `${apiBase}/api/auth/forgot-password/reset`,
-        {
-          email,
-          newPassword: values.newPassword,
-          resetToken,
-        },
-        { withCredentials: true }
-      );
+      await forgotResetMutation.mutateAsync({
+        email,
+        newPassword: values.newPassword,
+        resetToken,
+      });
 
       setStep("done");
       toast({ title: "Password updated", description: "You can now log in with your new password." });
     } catch (error) {
       toast({ title: "Error", description: getErrorMessage(error, "Failed to reset password"), variant: "destructive" });
-    } finally {
-      setLoading(false);
     }
   };
 
