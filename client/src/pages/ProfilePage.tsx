@@ -24,7 +24,7 @@ export default function ProfilePage() {
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">My Account</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage your identity, security, and workspace preferences.</p>
           </div>
-          <Button className="rounded-xl bg-blue-600 px-5 hover:bg-blue-700">Save Changes</Button>
+          <Button className="rounded-sm bg-blue-600 px-5 text-white hover:bg-blue-700 hover:text-white dark:text-white">Save Changes</Button>
         </div>
       </div>
 
@@ -115,7 +115,7 @@ export default function ProfilePage() {
             </div>
             <Progress value={75} className="h-2" />
             <div className="grid grid-cols-2 gap-3">
-              <Button className="rounded-sm bg-blue-600 hover:bg-blue-700">Upgrade Plan</Button>
+              <Button className="rounded-sm bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:text-white">Upgrade Plan</Button>
               <Button variant="secondary" className="rounded-sm">Manage Billing</Button>
             </div>
           </CardContent>

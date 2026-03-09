@@ -11,6 +11,7 @@ import AllFilesPage from "@/pages/files/AllFilesPage"
 import SharedPage from "@/pages/files/SharedPage"
 import StarredPage from "@/pages/files/StarredPage"
 import ProfilePage from "@/pages/ProfilePage"
+import NotificationsPage from "@/pages/NotificationsPage"
 import { useAuth } from "@/context/AuthContext"
 
 function GuestOnlyRoute() {
@@ -79,6 +80,10 @@ const router = createBrowserRouter([
           {
             path: "profile",
             element: <ProfilePage />,
+          },
+          {
+            path: "notifications",
+            element: <NotificationsPage />,
           },
         ],
       },

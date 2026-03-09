@@ -33,6 +33,7 @@ export type FileManagerModel = {
   uploadFile: (payload: { file: File; folderName: string }) => Promise<void>
   deleteSelectedFile: () => Promise<void>
   downloadSelectedFile: () => Promise<void>
+  downloadActiveFolderZip: () => Promise<void>
   shareActiveFolder: () => Promise<void>
 }
 
@@ -220,6 +221,40 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
   }
 
+  const downloadActiveFolderZip = async () => {
+    if (!activeFolder) {
+      return
+    }
+
+    try {
+      const response = await filesApi.downloadFolderZip(activeFolder.name)
+      const zipBlob = response.data
+      const url = window.URL.createObjectURL(zipBlob)
+      const link = document.createElement("a")
+      link.href = url
+
+      const contentDisposition = String(response.headers["content-disposition"] ?? "")
+      const fallbackName = `${activeFolder.name}.zip`
+      link.setAttribute("download", contentDisposition ? getDownloadFileName(contentDisposition) : fallbackName)
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      toast({
+        title: "ZIP ready",
+        description: `${activeFolder.name}.zip is downloading.`,
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "ZIP download failed",
+        description: "Could not download folder as ZIP.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const shareActiveFolder = async () => {
     if (!activeFolder) {
       return
@@ -268,6 +303,7 @@ export const useFileManagerModel = (): FileManagerModel => {
     uploadFile,
     deleteSelectedFile,
     downloadSelectedFile,
+    downloadActiveFolderZip,
     shareActiveFolder,
   }
 }

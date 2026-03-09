@@ -1,4 +1,4 @@
-import { LayoutGrid, List, Upload } from "lucide-react"
+import { FolderDown, LayoutGrid, List, Upload } from "lucide-react"
 import { useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
@@ -77,7 +77,7 @@ export default function AllFilesPage() {
               <List className="h-4 w-4" />
             </Button>
           </div>
-          <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsUploadDialogOpen(true)}>
+          <Button className="bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:text-white" onClick={() => setIsUploadDialogOpen(true)}>
             <Upload className="mr-1 h-4 w-4" />
             Upload New
           </Button>
@@ -161,8 +161,18 @@ export default function AllFilesPage() {
               <Card className="border-border bg-card shadow-none">
                 <CardContent className="space-y-4 p-4">
                   <div className="flex items-center justify-between">
-                      <div className="grid h-10 w-10 place-content-center">
+                      <div className="relative grid h-10 w-10 place-content-center">
                         <FolderGlyph />
+                        <Button
+                          type="button"
+                          size="icon"
+                          variant="secondary"
+                          className="absolute -bottom-2 -right-2 h-5 w-5 rounded-full border border-border bg-background"
+                          onClick={model.downloadActiveFolderZip}
+                          aria-label="Download folder as ZIP"
+                        >
+                          <FolderDown className="h-3 w-3" />
+                        </Button>
                     </div>
                     <Checkbox checked={false} />
                   </div>

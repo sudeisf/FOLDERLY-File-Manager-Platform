@@ -34,4 +34,10 @@ export const filesApi = {
       responseType: "blob",
     })
   },
+
+  async downloadFolderZip(folderName: string) {
+    return apiClient.get<Blob>(`/api/files/download-folder/${encodeURIComponent(folderName)}`, {
+      responseType: "blob",
+    })
+  },
 }

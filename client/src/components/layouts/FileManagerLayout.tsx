@@ -1,9 +1,11 @@
+import { useState } from "react"
 import { Bell, Download, Folder, HardDrive, Home, LogOut, Moon, Share2, Star, Sun, Users } from "lucide-react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import PlansDialog from "@/components/dialog/PlansDialog"
 import { useAuth } from "@/context/AuthContext"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
@@ -36,6 +38,9 @@ export default function FileManagerLayout() {
   const theme = useThemeStore((state) => state.theme)
   const toggleTheme = useThemeStore((state) => state.toggleTheme)
   const isProfileRoute = location.pathname === "/protected/profile"
+  const isNotificationsRoute = location.pathname === "/protected/notifications"
+  const isWideContentRoute = isProfileRoute || isNotificationsRoute
+  const [isPlansOpen, setIsPlansOpen] = useState(false)
 
   const handleLogout = async () => {
     await logout()
@@ -127,7 +132,7 @@ export default function FileManagerLayout() {
                       <span>{bytesToLabel(model.totalUsed)} used</span>
                       <span>{model.usedPercent.toFixed(0)}%</span>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full text-xs">
+                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setIsPlansOpen(true)}>
                       Upgrade Plan
                     </Button>
                   </CardContent>
@@ -144,7 +149,7 @@ export default function FileManagerLayout() {
 
             <SidebarInset className="bg-background dark:bg-[#18181B]">
               <div className="flex h-full">
-                <section className={cn("flex min-w-0 flex-1 flex-col", !isProfileRoute && "border-r border-border")}>
+                <section className={cn("flex min-w-0 flex-1 flex-col", !isWideContentRoute && "border-r border-border")}>
                   <div className="flex h-16 items-center justify-between gap-3 border-b border-border px-3 md:px-5 dark:border-slate-700 dark:bg-[#18181B]">
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <SidebarTrigger className="md:hidden" />
@@ -160,7 +165,13 @@ export default function FileManagerLayout() {
                       <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex" onClick={toggleTheme}>
                         {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
                       </Button>
-                      <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="hidden text-muted-foreground md:inline-flex"
+                        onClick={() => navigate("/protected/notifications")}
+                        aria-label="Go to notifications"
+                      >
                         <Bell className="h-4 w-4" />
                       </Button>
                       <Button
@@ -180,7 +191,7 @@ export default function FileManagerLayout() {
                   <Outlet context={model} />
                 </section>
 
-                {!isProfileRoute && <aside className="hidden w-[310px] min-h-0 flex-col bg-card dark:bg-[#18181B] lg:flex">
+                {!isWideContentRoute && <aside className="hidden w-[310px] min-h-0 flex-col bg-card dark:bg-[#18181B] lg:flex">
                   <div className="flex h-16 items-center border-b border-border px-5 dark:border-slate-700">
                     <h2 className="text-lg font-semibold">Details</h2>
                   </div>
@@ -228,7 +239,7 @@ export default function FileManagerLayout() {
                       </div>
                     </dl>
 
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={model.shareActiveFolder}>
+                    <Button className="w-full bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:text-white" onClick={model.shareActiveFolder}>
                       <Share2 className="mr-2 h-4 w-4" />
                       Share
                     </Button>
@@ -292,6 +303,7 @@ export default function FileManagerLayout() {
             </SidebarInset>
         </div>
       </SidebarProvider>
+      <PlansDialog open={isPlansOpen} onOpenChange={setIsPlansOpen} />
     </div>
   )
 }
