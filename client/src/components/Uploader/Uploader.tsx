@@ -12,7 +12,6 @@ import jpg from "@/assets/jpeg-svgrepo-com.svg";
 import pdf from "@/assets/xml-svgrepo-com.svg";
 import cancelIcon from "@/assets/remove-circle-svgrepo-com.svg";
 import { Button } from "../ui/button";
-import CreateFolder from "../dialog/UploadDialog";
 import { useDrop } from "react-dnd";
 import { NativeTypes } from "react-dnd-html5-backend";
 
@@ -175,7 +174,9 @@ export default function Uploader() {
 
         <div className="mx-auto flex justify-end space-x-4 mb-2 bg-white p-2 border-t-2">
           <Button variant="outline" className="w-[110px]">Discard</Button>
-          <CreateFolder file={file} />
+          <Button className="w-[110px]" disabled>
+            Upload
+          </Button>
         </div>
       </div>
     </div>

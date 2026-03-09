@@ -21,6 +21,17 @@ import { bytesToLabel, getFileIcon } from "@/features/file-manager/utils"
 import { cn } from "@/lib/utils"
 import { useFileManagerViewStore } from "@/stores/fileManagerViewStore"
 
+function FolderGlyph() {
+  return (
+    <svg viewBox="0 0 24 24" className="h-8 w-8" aria-hidden="true">
+      <path
+        d="M3 6.75A2.75 2.75 0 0 1 5.75 4h4.1c.9 0 1.67.45 2.15 1.12l.47.63c.2.27.5.42.83.42h5.98A2.75 2.75 0 0 1 22 8.92v8.33A2.75 2.75 0 0 1 19.25 20H5.75A2.75 2.75 0 0 1 3 17.25V6.75Z"
+        fill="#F1C40F"
+      />
+    </svg>
+  )
+}
+
 export default function AllFilesPage() {
   const model = useOutletContext<FileManagerModel>()
   const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
@@ -150,7 +161,9 @@ export default function AllFilesPage() {
               <Card className="border-border bg-card shadow-none">
                 <CardContent className="space-y-4 p-4">
                   <div className="flex items-center justify-between">
-                    <div className="h-8 w-8 rounded-lg bg-amber-200/60 dark:bg-amber-500/30" />
+                      <div className="grid h-10 w-10 place-content-center">
+                        <FolderGlyph />
+                    </div>
                     <Checkbox checked={false} />
                   </div>
                   <div>

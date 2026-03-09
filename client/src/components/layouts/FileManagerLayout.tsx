@@ -1,9 +1,10 @@
-import { Bell, Folder, HardDrive, Home, Moon, Share2, Star, Sun, Users } from "lucide-react"
-import { NavLink, Outlet } from "react-router-dom"
+import { Bell, Download, Folder, HardDrive, Home, LogOut, Moon, Share2, Star, Sun, Users } from "lucide-react"
+import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
+import { useAuth } from "@/context/AuthContext"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import {
@@ -24,18 +25,28 @@ import {
 import { Skeleton } from "@/components/ui/skeleton"
 import { useFileManagerModel } from "@/features/file-manager/use-file-manager-model"
 import { bytesToLabel, getFileIcon, getFileKind } from "@/features/file-manager/utils"
+import { cn } from "@/lib/utils"
 import { useThemeStore } from "@/stores/themeStore"
 
 export default function FileManagerLayout() {
   const model = useFileManagerModel()
+  const location = useLocation()
+  const navigate = useNavigate()
+  const { logout } = useAuth()
   const theme = useThemeStore((state) => state.theme)
   const toggleTheme = useThemeStore((state) => state.toggleTheme)
+  const isProfileRoute = location.pathname === "/protected/profile"
+
+  const handleLogout = async () => {
+    await logout()
+    navigate("/login", { replace: true })
+  }
 
   return (
-    <div className="h-dvh w-full overflow-hidden bg-background text-foreground">
+    <div className="h-dvh w-full overflow-hidden bg-background text-foreground dark:bg-[#18181B]">
       <SidebarProvider className="h-full">
-        <div className="flex h-full w-full items-stretch overflow-hidden border border-border bg-card">
-            <Sidebar collapsible="icon" variant="sidebar" className="border-r border-sidebar-border/70">
+        <div className="flex h-full w-full items-stretch overflow-hidden border border-border bg-card dark:border-slate-700 dark:bg-[#18181B]">
+            <Sidebar collapsible="icon" variant="sidebar" className="border-r border-sidebar-border/70 dark:border-slate-700 dark:bg-[#18181B]">
               <SidebarHeader className="px-3 pt-4">
                 <div className="flex items-center gap-2 px-2">
                   <div className="grid h-8 w-8 place-content-center rounded-lg bg-blue-600 text-xs font-semibold text-white">C</div>
@@ -121,13 +132,20 @@ export default function FileManagerLayout() {
                     </Button>
                   </CardContent>
                 </Card>
+
+                <div className="pt-2 group-data-[collapsible=icon]:pt-0">
+                  <Button variant="ghost" size="sm" className="w-full justify-start text-xs group-data-[collapsible=icon]:justify-center" onClick={handleLogout}>
+                    <LogOut className="h-4 w-4" />
+                    <span className="group-data-[collapsible=icon]:hidden">Logout</span>
+                  </Button>
+                </div>
               </SidebarFooter>
             </Sidebar>
 
-            <SidebarInset className="bg-background">
+            <SidebarInset className="bg-background dark:bg-[#18181B]">
               <div className="flex h-full">
-                <section className="flex min-w-0 flex-1 flex-col border-r border-border">
-                  <div className="flex h-16 items-center justify-between gap-3 border-b border-border px-3 md:px-5">
+                <section className={cn("flex min-w-0 flex-1 flex-col", !isProfileRoute && "border-r border-border")}>
+                  <div className="flex h-16 items-center justify-between gap-3 border-b border-border px-3 md:px-5 dark:border-slate-700 dark:bg-[#18181B]">
                     <div className="flex min-w-0 flex-1 items-center gap-2">
                       <SidebarTrigger className="md:hidden" />
                       <Input
@@ -145,21 +163,29 @@ export default function FileManagerLayout() {
                       <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex">
                         <Bell className="h-4 w-4" />
                       </Button>
-                      <Avatar className="h-8 w-8 border border-border bg-background">
-                        <AvatarFallback className="text-[11px] font-semibold">JD</AvatarFallback>
-                      </Avatar>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 rounded-full"
+                        onClick={() => navigate("/protected/profile")}
+                        aria-label="Go to profile"
+                      >
+                        <Avatar className="h-8 w-8 border border-border bg-background">
+                          <AvatarFallback className="text-[11px] font-semibold">JD</AvatarFallback>
+                        </Avatar>
+                      </Button>
                     </div>
                   </div>
 
                   <Outlet context={model} />
                 </section>
 
-                <aside className="hidden w-[290px] flex-col bg-card lg:flex">
-                  <div className="flex h-16 items-center border-b border-border px-4">
+                {!isProfileRoute && <aside className="hidden w-[310px] min-h-0 flex-col bg-card dark:bg-[#18181B] lg:flex">
+                  <div className="flex h-16 items-center border-b border-border px-5 dark:border-slate-700">
                     <h2 className="text-lg font-semibold">Details</h2>
                   </div>
-                  <div className="space-y-5 p-4">
-                    <div className="grid aspect-square place-content-center rounded-xl bg-muted/50">
+                  <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5">
+                    <div className="grid aspect-[4/3] place-content-center rounded-xl bg-muted/40 dark:bg-slate-900">
                       {model.selectedFile ? (
                         (() => {
                           const Icon = getFileIcon(model.selectedFile.metadata.mimetype)
@@ -170,23 +196,35 @@ export default function FileManagerLayout() {
                       )}
                     </div>
 
-                    <div>
-                      <h3 className="truncate text-base font-semibold">{model.selectedFile?.name ?? "No file selected"}</h3>
+                    <div className="space-y-1">
+                      <div className="flex items-center justify-between gap-2">
+                        <h3 className="truncate text-base font-semibold">{model.selectedFile?.name ?? "No file selected"}</h3>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="h-7 w-7 shrink-0"
+                          onClick={model.downloadSelectedFile}
+                          disabled={!model.selectedFile}
+                          aria-label="Download selected file"
+                        >
+                          <Download className="h-4 w-4" />
+                        </Button>
+                      </div>
                       <p className="text-xs text-muted-foreground">Last edited 10 mins ago</p>
                     </div>
 
-                    <dl className="space-y-2 text-sm">
-                      <div className="flex justify-between">
+                    <dl className="space-y-3 text-sm">
+                      <div className="flex items-center justify-between">
                         <dt className="text-muted-foreground">Type</dt>
-                        <dd className="font-medium">{model.selectedFile ? getFileKind(model.selectedFile.metadata.mimetype) : "-"}</dd>
+                        <dd className="font-semibold">{model.selectedFile ? getFileKind(model.selectedFile.metadata.mimetype) : "-"}</dd>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex items-center justify-between">
                         <dt className="text-muted-foreground">Size</dt>
-                        <dd className="font-medium">{model.selectedFile ? bytesToLabel(model.selectedFile.metadata.size) : "-"}</dd>
+                        <dd className="font-semibold">{model.selectedFile ? bytesToLabel(model.selectedFile.metadata.size) : "-"}</dd>
                       </div>
-                      <div className="flex justify-between">
+                      <div className="flex items-center justify-between">
                         <dt className="text-muted-foreground">Location</dt>
-                        <dd className="font-medium">{model.activeFolder?.name ?? "-"}</dd>
+                        <dd className="font-semibold">{model.activeFolder?.name ?? "-"}</dd>
                       </div>
                     </dl>
 
@@ -204,16 +242,52 @@ export default function FileManagerLayout() {
                       Delete Selected
                     </Button>
 
-                    <div className="space-y-2 pt-2">
-                      <h4 className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent Activity</h4>
-                      <ul className="space-y-2 text-xs text-muted-foreground">
-                        <li>New version uploaded 10 mins ago</li>
-                        <li>File viewed 1 hour ago</li>
-                        <li>Shared with Web Team yesterday</li>
-                      </ul>
+                    <div className="pt-1">
+                      <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent Activity</h4>
+
+                      <div className="space-y-0">
+                        <div className="group relative flex gap-x-3">
+                          <div className="relative after:absolute after:bottom-0 after:start-1/2 after:top-4 after:w-px after:-translate-x-[0.5px] after:bg-border">
+                            <div className="relative z-10 flex h-4 w-4 items-center justify-center">
+                              <div className="h-2.5 w-2.5 rounded-full bg-blue-600" />
+                            </div>
+                          </div>
+
+                          <div className="grow pb-4 pt-0.5">
+                            <p className="text-sm font-semibold leading-5">You uploaded a new version</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">10 mins ago</p>
+                          </div>
+                        </div>
+
+                        <div className="group relative flex gap-x-3">
+                          <div className="relative after:absolute after:bottom-0 after:start-1/2 after:top-4 after:w-px after:-translate-x-[0.5px] after:bg-border">
+                            <div className="relative z-10 flex h-4 w-4 items-center justify-center">
+                              <div className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                            </div>
+                          </div>
+
+                          <div className="grow pb-4 pt-0.5">
+                            <p className="text-sm font-semibold leading-5">Sarah Miller viewed the file</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">1h ago</p>
+                          </div>
+                        </div>
+
+                        <div className="group relative flex gap-x-3">
+                          <div className="relative">
+                            <div className="relative z-10 flex h-4 w-4 items-center justify-center">
+                              <div className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
+                            </div>
+                          </div>
+
+                          <div className="grow pb-0.5 pt-0.5">
+                            <p className="text-sm font-semibold leading-5">Shared with Web Team</p>
+                            <p className="mt-0.5 text-xs text-muted-foreground">Yesterday, 4:12 PM</p>
+                          </div>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                </aside>
+                </aside>}
               </div>
             </SidebarInset>
         </div>

@@ -10,6 +10,7 @@ import Home from "@/pages/home"
 import AllFilesPage from "@/pages/files/AllFilesPage"
 import SharedPage from "@/pages/files/SharedPage"
 import StarredPage from "@/pages/files/StarredPage"
+import ProfilePage from "@/pages/ProfilePage"
 import { useAuth } from "@/context/AuthContext"
 
 function GuestOnlyRoute() {
@@ -74,6 +75,10 @@ const router = createBrowserRouter([
           {
             path: "shared",
             element: <SharedPage />,
+          },
+          {
+            path: "profile",
+            element: <ProfilePage />,
           },
         ],
       },

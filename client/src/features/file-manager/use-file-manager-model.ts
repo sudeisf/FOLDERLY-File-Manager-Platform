@@ -5,6 +5,7 @@ import {
   useShareFolderMutation,
   useUploadFileMutation,
 } from "@/api/hooks/useFileManagerMutations"
+import { filesApi } from "@/api/files"
 import { useFolder } from "@/hooks/useFolder"
 import { toast } from "@/hooks/use-toast"
 
@@ -31,6 +32,7 @@ export type FileManagerModel = {
   refreshFolders: () => Promise<void>
   uploadFile: (payload: { file: File; folderName: string }) => Promise<void>
   deleteSelectedFile: () => Promise<void>
+  downloadSelectedFile: () => Promise<void>
   shareActiveFolder: () => Promise<void>
 }
 
@@ -159,6 +161,65 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
   }
 
+  const getDownloadFileName = (contentDisposition: string): string => {
+    if (!contentDisposition) return "download"
+
+    const utf8Match = contentDisposition.match(/filename\*=UTF-8''([^;]+)/i)
+    if (utf8Match?.[1]) {
+      try {
+        return decodeURIComponent(utf8Match[1])
+      } catch {
+        return utf8Match[1]
+      }
+    }
+
+    const basicMatch = contentDisposition.match(/filename="?([^";]+)"?/i)
+    return basicMatch?.[1] || "download"
+  }
+
+  const downloadSelectedFile = async () => {
+    if (!activeFolder || !selectedFile) {
+      return
+    }
+
+    const fileUid = selectedFile.uid ?? selectedFile.id
+    if (!fileUid) {
+      toast({
+        title: "Download failed",
+        description: "File identifier is missing.",
+        variant: "destructive",
+      })
+      return
+    }
+
+    try {
+      const response = await filesApi.download(activeFolder.name, fileUid)
+      const fileBlob = response.data
+      const url = window.URL.createObjectURL(fileBlob)
+      const link = document.createElement("a")
+      link.href = url
+
+      const contentDisposition = String(response.headers["content-disposition"] ?? "")
+      link.setAttribute("download", getDownloadFileName(contentDisposition))
+      document.body.appendChild(link)
+      link.click()
+      link.remove()
+      window.URL.revokeObjectURL(url)
+
+      toast({
+        title: "Download started",
+        description: `${selectedFile.name} is being downloaded.`,
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Download failed",
+        description: "Could not download selected file.",
+        variant: "destructive",
+      })
+    }
+  }
+
   const shareActiveFolder = async () => {
     if (!activeFolder) {
       return
@@ -206,6 +267,7 @@ export const useFileManagerModel = (): FileManagerModel => {
     refreshFolders,
     uploadFile,
     deleteSelectedFile,
+    downloadSelectedFile,
     shareActiveFolder,
   }
 }

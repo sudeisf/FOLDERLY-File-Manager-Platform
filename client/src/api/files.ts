@@ -28,4 +28,10 @@ export const filesApi = {
     )
     return data
   },
+
+  async download(folderName: string, fileUid: string) {
+    return apiClient.get<Blob>(`/api/files/download/${encodeURIComponent(folderName)}/${encodeURIComponent(fileUid)}`, {
+      responseType: "blob",
+    })
+  },
 }
