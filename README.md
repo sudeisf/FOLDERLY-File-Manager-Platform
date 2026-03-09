@@ -36,7 +36,20 @@ A full-stack file management platform with authentication, folder organization, 
 - File actions: view in browser, download, delete
 - Folder ZIP download
 - Share links with expiration support
+- File manager dashboard with grid/list view toggle
+- Details panel actions for file download, delete, and folder share
+- Profile page with account/security/preferences sections
+- Notifications page with working `All`, `Unread`, and `System` tabs
+- Upgrade Plans modal with pricing tiers (demo UI)
 - Interactive API documentation at `/api-docs`
+
+## Frontend Routes (Protected)
+
+- `/protected/all-files` main file manager experience
+- `/protected/shared` shared content view
+- `/protected/starred` starred items view
+- `/protected/profile` profile and account settings
+- `/protected/notifications` notifications center
 
 ## Quick Start
 

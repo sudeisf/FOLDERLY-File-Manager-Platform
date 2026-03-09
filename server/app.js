@@ -1,4 +1,5 @@
 const express = require('express');
+const http = require('http');
 require('dotenv').config();
 const app = express();
 const session = require('express-session');
@@ -11,10 +12,15 @@ const cors = require('cors');
 const fileRoute = require("./routes/files");
 const folderRoute = require("./routes/folders");
 const shareRoute = require("./routes/share");
+const favoritesRoute = require('./routes/favorites');
+const sharedRoute = require('./routes/shared');
+const notificationsRoute = require('./routes/notifications');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 const { apiLimiter } = require('./middleware/rateLimiter');
 const { initializeEmailWorker } = require('./workers/emailWorker');
+const { initializeNotificationWorker } = require('./workers/notificationWorker');
+const { initSocketServer } = require('./realtime/socketServer');
 
 const prisma = new PrismaClient();
 const PORT = Number(process.env.PORT || 3001);
@@ -82,6 +88,9 @@ app.use(['/api', '/share'], apiLimiter);
 app.use('/api/auth', authRoute);
 app.use('/api/files', fileRoute);
 app.use('/api/folders', folderRoute);
+app.use('/api/favorites', favoritesRoute);
+app.use('/api/shared', sharedRoute);
+app.use('/api/notifications', notificationsRoute);
 app.use('/share', shareRoute);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
@@ -93,8 +102,12 @@ module.exports = app;
 
 if (require.main === module) {
   initializeEmailWorker();
+  initializeNotificationWorker();
 
-  const server = app.listen(PORT, () => {
+  const server = http.createServer(app);
+  initSocketServer(server, allowedOrigins);
+
+  server.listen(PORT, () => {
     console.log(`Server is running on port ${PORT}`);
   });
 

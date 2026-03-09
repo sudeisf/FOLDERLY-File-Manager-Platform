@@ -42,6 +42,24 @@ export default function FileManagerLayout() {
   const isWideContentRoute = isProfileRoute || isNotificationsRoute
   const [isPlansOpen, setIsPlansOpen] = useState(false)
 
+  const selectedFilePreviewUrl = (() => {
+    if (!model.activeFolder || !model.selectedFile) {
+      return null
+    }
+
+    const fileUid = model.selectedFile.uid ?? model.selectedFile.id
+    if (!fileUid) {
+      return null
+    }
+
+    const apiBase = String(import.meta.env.VITE_API_URL ?? "").replace(/\/$/, "")
+    return `${apiBase}/api/files/view/${encodeURIComponent(model.activeFolder.name)}/${encodeURIComponent(fileUid)}`
+  })()
+
+  const selectedMimeType = model.selectedFile?.metadata.mimetype ?? ""
+  const isImagePreview = selectedMimeType.startsWith("image/") && Boolean(selectedFilePreviewUrl)
+  const isPdfPreview = selectedMimeType === "application/pdf" && Boolean(selectedFilePreviewUrl)
+
   const handleLogout = async () => {
     await logout()
     navigate("/login", { replace: true })
@@ -196,14 +214,33 @@ export default function FileManagerLayout() {
                     <h2 className="text-lg font-semibold">Details</h2>
                   </div>
                   <div className="no-scrollbar flex min-h-0 flex-1 flex-col gap-5 overflow-y-auto p-5">
-                    <div className="grid aspect-[4/3] place-content-center rounded-xl bg-muted/40 dark:bg-slate-900">
-                      {model.selectedFile ? (
+                    <div className="grid aspect-[4/3] overflow-hidden rounded-xl bg-muted/40 dark:bg-slate-900">
+                      {isImagePreview && selectedFilePreviewUrl ? (
+                        <img
+                          src={selectedFilePreviewUrl}
+                          alt={model.selectedFile?.name ?? "Selected file preview"}
+                          className="h-full w-full object-cover"
+                          loading="lazy"
+                        />
+                      ) : isPdfPreview && selectedFilePreviewUrl ? (
+                        <iframe
+                          src={`${selectedFilePreviewUrl}#page=1&toolbar=0&navpanes=0&scrollbar=0`}
+                          title={model.selectedFile?.name ?? "PDF preview"}
+                          className="h-full w-full"
+                        />
+                      ) : model.selectedFile ? (
                         (() => {
                           const Icon = getFileIcon(model.selectedFile.metadata.mimetype)
-                          return <Icon className="h-16 w-16 text-blue-600" />
+                          return (
+                            <div className="grid h-full w-full place-content-center">
+                              <Icon className="h-16 w-16 text-blue-600" />
+                            </div>
+                          )
                         })()
                       ) : (
-                        <HardDrive className="h-16 w-16 text-muted-foreground" />
+                        <div className="grid h-full w-full place-content-center">
+                          <HardDrive className="h-16 w-16 text-muted-foreground" />
+                        </div>
                       )}
                     </div>
 

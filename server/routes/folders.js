@@ -8,9 +8,14 @@ const {
     deleteFolder,
     getFoldersName
 } = require('../controller/foldersController');
+const { toggleFolderStar } = require('../controller/favoritesController');
 
 
 router.post('/create-folder',
+    authenticateUser,
+    createFolder);
+
+router.post('/create',
     authenticateUser,
     createFolder);
 
@@ -30,6 +35,10 @@ router.put('/:id',
 router.delete('/:id',
      authenticateUser,
      deleteFolder);
+
+router.put('/:id/star',
+    authenticateUser,
+    toggleFolderStar);
 
 
 module.exports = router;
