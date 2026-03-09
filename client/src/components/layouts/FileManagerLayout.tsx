@@ -127,23 +127,28 @@ export default function FileManagerLayout() {
             <SidebarInset className="bg-background">
               <div className="flex h-full">
                 <section className="flex min-w-0 flex-1 flex-col border-r border-border">
-                  <div className="flex h-16 items-center gap-2 border-b border-border px-3 md:px-5">
-                    <SidebarTrigger className="md:hidden" />
-                    <Input
-                      value={model.search}
-                      onChange={(event) => model.setSearch(event.target.value)}
-                      placeholder="Search files, folders, or people..."
-                      className="h-9 border-input bg-background"
-                    />
-                    <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex" onClick={toggleTheme}>
-                      {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
-                    </Button>
-                    <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex">
-                      <Bell className="h-4 w-4" />
-                    </Button>
-                    <Avatar className="h-8 w-8 border border-border bg-background">
-                      <AvatarFallback className="text-[11px] font-semibold">JD</AvatarFallback>
-                    </Avatar>
+                  <div className="flex h-16 items-center justify-between gap-3 border-b border-border px-3 md:px-5">
+                    <div className="flex min-w-0 flex-1 items-center gap-2">
+                      <SidebarTrigger className="md:hidden" />
+                      <Input
+                        value={model.search}
+                        onChange={(event) => model.setSearch(event.target.value)}
+                        placeholder="Search files, folders, or people..."
+                        className="h-9 w-full max-w-[560px] border-input bg-background/70"
+                      />
+                    </div>
+
+                    <div className="flex items-center gap-2">
+                      <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex" onClick={toggleTheme}>
+                        {theme === "dark" ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
+                      </Button>
+                      <Button variant="ghost" size="icon" className="hidden text-muted-foreground md:inline-flex">
+                        <Bell className="h-4 w-4" />
+                      </Button>
+                      <Avatar className="h-8 w-8 border border-border bg-background">
+                        <AvatarFallback className="text-[11px] font-semibold">JD</AvatarFallback>
+                      </Avatar>
+                    </div>
                   </div>
 
                   <Outlet context={model} />
