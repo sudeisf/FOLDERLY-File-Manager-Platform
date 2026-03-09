@@ -9,11 +9,16 @@ import ForgotPassword from './pages/ForgotPassword.tsx';
 import { AuthProvider } from './context/AuthContext.tsx';
 import ProtectedLayout from './components/layouts/ProtectedLayout.tsx';
 import Home from './pages/home.tsx';
+import FileManagerLayout from './components/layouts/FileManagerLayout.tsx';
+import AllFilesPage from './pages/files/AllFilesPage.tsx';
+import SharedPage from './pages/files/SharedPage.tsx';
+import StarredPage from './pages/files/StarredPage.tsx';
 import { Toaster } from './components/ui/toaster.tsx';
 import { QueryClientProvider } from '@tanstack/react-query';
 import { queryClient } from './lib/queryClient.tsx';
 import { DndProvider } from 'react-dnd';
 import { HTML5Backend } from 'react-dnd-html5-backend';
+import ThemeProvider from './components/providers/ThemeProvider.tsx';
 
 
 // Define your router
@@ -44,11 +49,28 @@ const router = createBrowserRouter([
         children: [
           {
             index: true,
-            element: <Navigate to="home" replace />, // Redirects "/protected" to "/protected/home"
+            element: <Navigate to="all-files" replace />, // Redirects "/protected" to "/protected/all-files"
           },
           {
-            path: "home",
-            element: <Home />,
+            element: <FileManagerLayout />,
+            children: [
+              {
+                path: "home",
+                element: <Home />,
+              },
+              {
+                path: "all-files",
+                element: <AllFilesPage />,
+              },
+              {
+                path: "shared",
+                element: <SharedPage />,
+              },
+              {
+                path: "starred",
+                element: <StarredPage />,
+              },
+            ],
           },
         ],
       },
@@ -59,13 +81,15 @@ const router = createBrowserRouter([
 // Render the app
 createRoot(document.getElementById('root')!).render(
   <StrictMode>
-    <AuthProvider>
-      <QueryClientProvider client={queryClient}>
-        <DndProvider backend={HTML5Backend}>
-          <RouterProvider router={router} />
-          <Toaster />
-        </DndProvider>
-      </QueryClientProvider>
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <QueryClientProvider client={queryClient}>
+          <DndProvider backend={HTML5Backend}>
+            <RouterProvider router={router} />
+            <Toaster />
+          </DndProvider>
+        </QueryClientProvider>
+      </AuthProvider>
+    </ThemeProvider>
   </StrictMode>
 );
