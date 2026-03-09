@@ -185,9 +185,18 @@ export default function FileManagerLayout() {
                       </div>
                     </dl>
 
-                    <Button className="w-full bg-blue-600 hover:bg-blue-700">
+                    <Button className="w-full bg-blue-600 hover:bg-blue-700" onClick={model.shareActiveFolder}>
                       <Share2 className="mr-2 h-4 w-4" />
                       Share
+                    </Button>
+
+                    <Button
+                      variant="outline"
+                      className="w-full"
+                      onClick={model.deleteSelectedFile}
+                      disabled={!model.selectedFile}
+                    >
+                      Delete Selected
                     </Button>
 
                     <div className="space-y-2 pt-2">

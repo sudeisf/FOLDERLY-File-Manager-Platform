@@ -1,4 +1,5 @@
 import { Upload } from "lucide-react"
+import { useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
 import {
@@ -12,6 +13,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
+import UploadDialog from "@/components/dialog/UploadDialog"
 import { Progress } from "@/components/ui/progress"
 import { Skeleton } from "@/components/ui/skeleton"
 import type { FileManagerModel } from "@/features/file-manager/use-file-manager-model"
@@ -20,6 +22,7 @@ import { cn } from "@/lib/utils"
 
 export default function AllFilesPage() {
   const model = useOutletContext<FileManagerModel>()
+  const [isUploadDialogOpen, setIsUploadDialogOpen] = useState(false)
 
   return (
     <div className="flex flex-1 flex-col overflow-y-auto px-3 py-4 md:px-6 md:py-5">
@@ -39,11 +42,20 @@ export default function AllFilesPage() {
             </BreadcrumbItem>
           </BreadcrumbList>
         </Breadcrumb>
-        <Button className="bg-blue-600 hover:bg-blue-700">
+        <Button className="bg-blue-600 hover:bg-blue-700" onClick={() => setIsUploadDialogOpen(true)}>
           <Upload className="mr-1 h-4 w-4" />
           Upload New
         </Button>
       </div>
+
+      <UploadDialog
+        open={isUploadDialogOpen}
+        onOpenChange={setIsUploadDialogOpen}
+        folders={model.folders}
+        defaultFolderName={model.activeFolder?.name}
+        isUploading={model.isUploading}
+        onUpload={model.uploadFile}
+      />
 
       <div className="mb-6">
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recently Accessed</h3>
@@ -123,14 +135,15 @@ export default function AllFilesPage() {
         </div>
       </div>
 
-      <div className="pointer-events-none fixed bottom-5 left-1/2 z-40 w-[min(90vw,460px)] -translate-x-1/2 rounded-xl border border-slate-800/80 bg-slate-900 px-4 py-3 text-sm text-slate-100 shadow-2xl">
-        <div className="mb-2 flex items-center justify-between text-xs text-slate-300">
-          <span>Uploading 2 files...</span>
-          <span>45%</span>
+      {model.isUploading && (
+        <div className="pointer-events-none fixed bottom-5 left-1/2 z-40 w-[min(90vw,460px)] -translate-x-1/2 rounded-xl border border-slate-800/80 bg-slate-900 px-4 py-3 text-sm text-slate-100 shadow-2xl">
+          <div className="mb-2 flex items-center justify-between text-xs text-slate-300">
+            <span>Uploading file...</span>
+            <span>{model.uploadProgress}%</span>
+          </div>
+          <Progress value={model.uploadProgress} className="h-1.5 bg-slate-700 [&>div]:bg-emerald-400" />
         </div>
-        <Progress value={45} className="h-1.5 bg-slate-700 [&>div]:bg-emerald-400" />
-        <p className="mt-2 text-xs text-slate-300">New version of "Brand_identity.pdf" uploaded successfully.</p>
-      </div>
+      )}
     </div>
   )
 }

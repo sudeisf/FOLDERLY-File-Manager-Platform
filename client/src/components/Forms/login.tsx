@@ -8,7 +8,7 @@ import { Link } from "react-router-dom"
 import axios from "axios"
 import type { AxiosError } from "axios"
 import { useToast } from "@/hooks/use-toast"
-import { useNavigate } from "react-router-dom"
+import { useLocation, useNavigate } from "react-router-dom"
 import { useAuth } from "@/context/AuthContext"
 import { Loader2 } from "lucide-react"
 import { useState } from "react"
@@ -23,8 +23,10 @@ export default function Login() {
 
     const { toast  } = useToast();
     const navigate = useNavigate();
-    const {setIsLoggedIn} = useAuth();
+    const location = useLocation();
+    const { setIsLoggedIn, setSession } = useAuth();
     const [loading, setLoading] = useState(false);
+    const redirectTo = (location.state as { from?: string } | null)?.from ?? "/protected/home";
 
     const handleGoogleLogin = () => {
         const apiBase = (import.meta.env.VITE_API_URL || '').replace(/\/$/, '');
@@ -48,13 +50,32 @@ export default function Login() {
             const response  = await axios.post(`${API_URL}/api/auth/login`, values ,{withCredentials: true});
             const data = response.data;
             if(data.success){
+                                const authData = data?.data ?? data;
+                                const token = authData?.token ?? authData?.accessToken ?? authData?.jwt;
+                                const user = authData?.user;
+
+                                if (
+                                    typeof token === "string" &&
+                                    user &&
+                                    typeof user.id === "string" &&
+                                    typeof user.username === "string"
+                                ) {
+                                    setSession({
+                                        token,
+                                        user: {
+                                            id: user.id,
+                                            username: user.username,
+                                            email: typeof user.email === "string" ? user.email : undefined,
+                                        },
+                                    });
+                                }
                 toast({
                     title: "Success",
                     description: data.message,
                     variant: "default",
                 })
                 setIsLoggedIn(true);
-                navigate("/protected/home");
+                navigate(redirectTo, { replace: true });
             }
         }catch(e: unknown){
             const err = e as AxiosError<{ message?: string }>;
