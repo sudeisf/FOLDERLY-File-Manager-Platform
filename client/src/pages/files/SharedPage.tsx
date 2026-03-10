@@ -1,23 +1,21 @@
 import { useEffect, useMemo, useState } from "react"
 import {
   CalendarDays,
-  Download,
-  ExternalLink,
-  File,
-  FileArchive,
-  FileImage,
-  FileSpreadsheet,
-  FileText,
-  FileType,
-  FileVideo,
-  Filter,
-  Folder,
-  HardDrive,
-  LayoutGrid,
-  List,
-  MoreVertical,
-  Share2,
-  User,
+    Download,
+    ExternalLink,
+    File,
+    FileArchive,
+    FileImage,
+    FileSpreadsheet,
+    FileText,
+    FileType,
+    FileVideo,
+    Folder,
+    HardDrive,
+    LayoutGrid,
+    List,
+    MoreVertical,
+    User,
   Users,
   X,
 } from "lucide-react"
@@ -160,7 +158,7 @@ function ItemDetailsSheet({
           <div className="flex flex-col items-center gap-3 text-center">
             {item.type === "folder" ? (
               <FolderIconBox size="lg" />
-            ) : item.url && ["jpg","jpeg","png","webp","gif","svg"].includes(fileExtension(item.name)) ? (
+            ) : item.url && ["jpg","jpeg","png","webg","gif","svg"].includes(fileExtension(item.name)) ? (
               <div className="h-48 w-full overflow-hidden rounded-xl border border-slate-200 bg-slate-100 dark:border-slate-700 dark:bg-slate-800">
                 <img
                   src={item.url}
@@ -267,7 +265,7 @@ function ItemDetailsSheet({
                 }
               }}
             >
-              <Share2 className="h-4 w-4" />
+              <Users className="h-4 w-4" />
               {item.type === "file" && item.url ? "Copy file URL" : "Copy ID"}
             </Button>
           </div>
@@ -461,7 +459,7 @@ function EmptyState() {
   return (
     <div className="mt-4 flex flex-col items-center justify-center rounded-xl border-2 border-dashed border-slate-200 bg-slate-50 px-6 py-16 dark:border-slate-700 dark:bg-slate-800/20">
       <div className="mb-4 flex h-14 w-14 items-center justify-center rounded-full bg-slate-100 dark:bg-slate-800">
-        <Share2 className="h-7 w-7 text-slate-400" />
+        <Users className="h-7 w-7 text-slate-400" />
       </div>
       <p className="mb-1 text-sm font-semibold text-slate-700 dark:text-slate-300">
         Shared content automatically appears here
@@ -552,15 +550,7 @@ export default function SharedPage() {
                 <LayoutGrid className="h-4 w-4" />
               </Button>
             </div>
-            <Button variant="outline" size="sm" className="gap-2">
-              <Filter className="h-4 w-4" />
-              Filter
-            </Button>
-            <Button size="sm" className="gap-2 bg-blue-600 text-white hover:bg-blue-700">
-              <Share2 className="h-4 w-4" />
-              Shared
-            </Button>
-          </div>
+          </div> {/* Fixed: This closing tag was missing */}
         </div>
 
         {/* tabs */}

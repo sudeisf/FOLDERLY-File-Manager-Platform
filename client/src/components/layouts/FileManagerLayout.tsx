@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Bell, Download, Folder, HardDrive, Home, LogOut, Moon, Share2, Star, Sun, Users } from "lucide-react"
+import { Bell, Cloud, Download, Folder, HardDrive, Home, LogOut, Moon, Share2, Star, Sun, Users } from "lucide-react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
 import { io } from "socket.io-client"
 import { useQueryClient } from "@tanstack/react-query"
@@ -123,7 +123,9 @@ export default function FileManagerLayout() {
             <Sidebar collapsible="icon" variant="sidebar" className="border-r border-sidebar-border/70 dark:border-slate-700 dark:bg-[#18181B]">
               <SidebarHeader className="px-3 pt-4">
                 <div className="flex items-center gap-2 px-2">
-                  <div className="grid h-8 w-8 place-content-center rounded-lg bg-blue-600 text-xs font-semibold text-white">C</div>
+                  <div className="grid h-8 w-8 place-content-center rounded-lg bg-blue-600 text-xs font-semibold text-white">
+                    <Cloud className="h-5 w-5" />
+                  </div>
                   <div className="group-data-[collapsible=icon]:hidden">
                     <p className="text-sm font-semibold">FOLDERLY</p>
                   </div>

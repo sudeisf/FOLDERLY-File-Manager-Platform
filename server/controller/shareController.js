@@ -1,3 +1,52 @@
+// ─── List items shared with the current user ────────────────────────────────
+const listSharedItems = async (req, res) => {
+    try {
+        const userId = getUserId(req.user);
+        if (!userId) return res.status(401).send('Unauthorized');
+
+        // Find folders shared with user
+        const folders = await prisma.folder.findMany({
+            where: {
+                sharedWithUserIds: { has: userId },
+            },
+            select: {
+                id: true,
+                name: true,
+                user: {
+                    select: { id: true, username: true, email: true }
+                },
+            },
+        });
+
+        // Find files shared with user
+        const files = await prisma.file.findMany({
+            where: {
+                sharedWithUserIds: { has: userId },
+            },
+            select: {
+                id: true,
+                name: true,
+                size: true,
+                url: true,
+                folderId: true,
+                owner: {
+                    select: { id: true, username: true, email: true }
+                },
+                sharedAt: true,
+            },
+        });
+
+        // Normalize type for frontend
+        const normFolders = folders.map(f => ({ ...f, type: 'folder' }));
+        const normFiles = files.map(f => ({ ...f, type: 'file' }));
+        const items = [...normFolders, ...normFiles];
+
+        return res.json({ items, folders: normFolders, files: normFiles });
+    } catch (error) {
+        console.error('Error listing shared items:', error.message);
+        return res.status(500).send('Internal server error');
+    }
+};
 const { PrismaClient } = require('@prisma/client');
 const { ObjectId } = require('mongodb');
 const prisma = new PrismaClient();
@@ -282,51 +331,6 @@ const { Queue } = require('bullmq');
 const { getRedisConnection } = require('../queue/redisConnection');
 const shareQueue = new Queue('share-jobs', { connection: getRedisConnection() });
 
-const shareFolderWithUsers = async (req, res) => {
-    try {
-        const ownerUserId = getUserId(req.user);
-        if (!ownerUserId) {
-            return res.status(401).send('Unauthorized');
-        }
-
-        const folderId = req.params.id;
-        const rawEmails = Array.isArray(req.body?.emails) ? req.body.emails : [];
-        const rawUserIds = Array.isArray(req.body?.userIds) ? req.body.userIds : [];
-
-        const emails = uniqObjectIds(rawEmails.map((value) => String(value).toLowerCase()));
-        const userIds = uniqObjectIds(rawUserIds.map((value) => String(value)));
-
-        if (!emails.length && !userIds.length) {
-            return res.status(400).send('Provide at least one recipient via emails or userIds');
-        }
-
-        // Enqueue share job
-        await shareQueue.add('share-folder', {
-            ownerUserId,
-            folderId,
-            emails,
-            userIds,
-        }, {
-            attempts: 3,
-            backoff: { type: 'exponential', delay: 1000 },
-            removeOnComplete: 100,
-            removeOnFail: 100,
-        });
-
-        return res.status(200).json({
-            message: 'Folder sharing is being processed in the background.',
-        });
-    } catch (error) {
-        console.error('Internal server error:', error.message);
-        return res.status(500).send('Internal server error');
-    }
-}
-        });
-    } catch (error) {
-        console.error('Internal server error:', error.message);
-        return res.status(500).send('Internal server error');
-    }
-};
 
 // ─── log a share activity for all affected item IDs ───────────────────────────
 
@@ -399,8 +403,8 @@ const getItemActivity = async (req, res) => {
 module.exports = {
     GenerateShareLink,
     AccessShared,
-    getSharedView,
     shareFolderWithUsers,
     getItemActivity,
     logActivity,
+    listSharedItems,
 }

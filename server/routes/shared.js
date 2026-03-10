@@ -1,8 +1,11 @@
 const router = require('express').Router();
 const authenticateUser = require('../middleware/authenticator');
-const { getSharedView, shareFolderWithUsers, getItemActivity } = require('../controller/shareController');
+const { shareFolderWithUsers, getItemActivity, listSharedItems } = require('../controller/shareController');
 
-router.get('/', authenticateUser, getSharedView);
+
+// List items shared with the current user
+router.get('/', authenticateUser, listSharedItems);
+
 router.post('/folders/:id/share-with', authenticateUser, shareFolderWithUsers);
 router.get('/:type/:id/activity', authenticateUser, getItemActivity);
 
