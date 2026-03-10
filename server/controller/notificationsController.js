@@ -35,6 +35,27 @@ const getNotifications = async (req, res) => {
   }
 };
 
+const getNotificationCount = async (req, res) => {
+  try {
+    const userId = getUserId(req.user);
+    if (!userId) {
+      return res.status(401).send('Unauthorized');
+    }
+
+    const unreadCount = await prisma.notification.count({
+      where: {
+        userId,
+        isRead: false,
+      },
+    });
+
+    return res.status(200).json({ unreadCount });
+  } catch (error) {
+    console.error('Internal server error:', error.message);
+    return res.status(500).send('Internal server error');
+  }
+};
+
 const markNotificationAsRead = async (req, res) => {
   try {
     const userId = getUserId(req.user);
@@ -122,6 +143,7 @@ const enqueueTestNotification = async (req, res) => {
 };
 
 module.exports = {
+  getNotificationCount,
   getNotifications,
   markNotificationAsRead,
   markAllNotificationsAsRead,

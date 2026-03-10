@@ -1,11 +1,17 @@
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { Bell, Download, Folder, HardDrive, Home, LogOut, Moon, Share2, Star, Sun, Users } from "lucide-react"
 import { NavLink, Outlet, useLocation, useNavigate } from "react-router-dom"
+import { io } from "socket.io-client"
+import { useQueryClient } from "@tanstack/react-query"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { useNotificationCountQuery } from "@/api/hooks/useNotifications"
+import { useMyProfileQuery } from "@/api/hooks/useProfile"
+import { queryKeys } from "@/api/queryKeys"
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import PlansDialog from "@/components/dialog/PlansDialog"
+import ShareWithUsersDialog from "@/components/dialog/ShareWithUsersDialog"
 import { useAuth } from "@/context/AuthContext"
 import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
@@ -41,6 +47,44 @@ export default function FileManagerLayout() {
   const isNotificationsRoute = location.pathname === "/protected/notifications"
   const isWideContentRoute = isProfileRoute || isNotificationsRoute
   const [isPlansOpen, setIsPlansOpen] = useState(false)
+  const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
+  const queryClient = useQueryClient()
+  const notificationCountQuery = useNotificationCountQuery()
+  const unreadCount = notificationCountQuery.data?.unreadCount ?? 0
+  const profileQuery = useMyProfileQuery()
+  const profileName = (() => {
+    const profile = profileQuery.data
+    if (!profile) {
+      return "User"
+    }
+
+    const fullName = `${profile.firstName || ""} ${profile.lastName || ""}`.trim()
+    return fullName || profile.username || "User"
+  })()
+  const profileInitials = profileName
+    .split(" ")
+    .filter(Boolean)
+    .slice(0, 2)
+    .map((part) => part[0]?.toUpperCase() || "")
+    .join("") || "U"
+
+  useEffect(() => {
+    const baseURL = String(import.meta.env.VITE_API_URL || "")
+    const socket = io(baseURL, {
+      path: "/socket.io",
+      withCredentials: true,
+      transports: ["websocket", "polling"],
+    })
+
+    socket.on("notification:new", () => {
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count })
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all })
+    })
+
+    return () => {
+      socket.disconnect()
+    }
+  }, [queryClient])
 
   const selectedFilePreviewUrl = (() => {
     if (!model.activeFolder || !model.selectedFile) {
@@ -186,11 +230,16 @@ export default function FileManagerLayout() {
                       <Button
                         variant="ghost"
                         size="icon"
-                        className="hidden text-muted-foreground md:inline-flex"
+                        className="relative hidden text-muted-foreground md:inline-flex"
                         onClick={() => navigate("/protected/notifications")}
                         aria-label="Go to notifications"
                       >
                         <Bell className="h-4 w-4" />
+                        {unreadCount > 0 ? (
+                          <span className="absolute -right-0.5 -top-0.5 inline-flex h-4 min-w-4 items-center justify-center rounded-full bg-blue-600 px-1 text-[10px] font-semibold text-white">
+                            {unreadCount > 99 ? "99+" : unreadCount}
+                          </span>
+                        ) : null}
                       </Button>
                       <Button
                         variant="ghost"
@@ -198,9 +247,11 @@ export default function FileManagerLayout() {
                         className="h-8 w-8 rounded-full"
                         onClick={() => navigate("/protected/profile")}
                         aria-label="Go to profile"
+                        title={profileName}
                       >
                         <Avatar className="h-8 w-8 border border-border bg-background">
-                          <AvatarFallback className="text-[11px] font-semibold">JD</AvatarFallback>
+                          <AvatarImage src={profileQuery.data?.avatarUrl || undefined} alt={profileName} />
+                          <AvatarFallback className="text-[11px] font-semibold">{profileInitials}</AvatarFallback>
                         </Avatar>
                       </Button>
                     </div>
@@ -276,7 +327,7 @@ export default function FileManagerLayout() {
                       </div>
                     </dl>
 
-                    <Button className="w-full bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:text-white" onClick={model.shareActiveFolder}>
+                    <Button className="w-full bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:text-white" onClick={() => setIsShareDialogOpen(true)}>
                       <Share2 className="mr-2 h-4 w-4" />
                       Share
                     </Button>
@@ -341,6 +392,14 @@ export default function FileManagerLayout() {
         </div>
       </SidebarProvider>
       <PlansDialog open={isPlansOpen} onOpenChange={setIsPlansOpen} />
+      <ShareWithUsersDialog
+        open={isShareDialogOpen}
+        onOpenChange={setIsShareDialogOpen}
+        folderName={model.activeFolder?.name}
+        isSharing={model.isSharing}
+        onCopyLink={() => model.shareActiveFolder([])}
+        onShareWithEmails={(emails) => model.shareActiveFolder(emails)}
+      />
     </div>
   )
 }

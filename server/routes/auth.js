@@ -5,6 +5,7 @@ const {
     forgotPasswordRequestController,
     forgotPasswordVerifyController,
     forgotPasswordResetController,
+    changePasswordController,
 } = require('../controller/authController');
 const  authenticateUser  = require('../middleware/authenticator');
 const { authLimiter } = require('../middleware/rateLimiter');
@@ -22,11 +23,18 @@ const tokenCookieOptions = {
     maxAge: 1000 * 60 * 60 * 24,
 };
 
+const clearTokenCookieOptions = {
+    httpOnly: tokenCookieOptions.httpOnly,
+    secure: tokenCookieOptions.secure,
+    sameSite: tokenCookieOptions.sameSite,
+};
+
 router.post('/register', authLimiter, registerController);
 router.post('/login', authLimiter, loginController);
 router.post('/forgot-password/request', authLimiter, forgotPasswordRequestController);
 router.post('/forgot-password/verify', authLimiter, forgotPasswordVerifyController);
 router.post('/forgot-password/reset', authLimiter, forgotPasswordResetController);
+router.post('/change-password', authenticateUser, authLimiter, changePasswordController);
 
 router.get('/google', (req, res, next) => {
     if (!isGoogleConfigured) {
@@ -62,14 +70,32 @@ router.get('/google/callback',
 );
 
 router.get('/logout', (req, res) => {
-    req.logout(() => {});
-    req.session.destroy((err) => {
-        if (err) {
-            console.error('Error destroying session:', err);
+    const finalizeLogout = () => {
+        if (req.session && typeof req.session.destroy === 'function') {
+            req.session.destroy((err) => {
+                if (err) {
+                    console.error('Error destroying session:', err);
+                }
+                res.clearCookie('token', clearTokenCookieOptions);
+                return res.status(200).send({ success: true, message: 'Logout successful' });
+            });
+            return;
         }
-    }); 
-    res.clearCookie('token', tokenCookieOptions);
-    res.status(200).send({success: true, message: 'Logout successful'});
+
+        res.clearCookie('token', clearTokenCookieOptions);
+        return res.status(200).send({ success: true, message: 'Logout successful' });
+    };
+
+    if (typeof req.logout === 'function' && req.session) {
+        return req.logout((err) => {
+            if (err) {
+                console.error('Error during logout:', err);
+            }
+            return finalizeLogout();
+        });
+    }
+
+    return finalizeLogout();
 });
 
 router.get('/protected',authenticateUser,(req, res) => {

@@ -26,6 +26,11 @@ type ResetPasswordRequest = {
   resetToken: string
 }
 
+type ChangePasswordRequest = {
+  currentPassword: string
+  newPassword: string
+}
+
 export type AuthApiResponse = {
   success?: boolean
   message?: string
@@ -56,6 +61,11 @@ export const authApi = {
 
   async forgotPasswordReset(payload: ResetPasswordRequest) {
     const { data } = await apiClient.post<AuthApiResponse>("/api/auth/forgot-password/reset", payload)
+    return data
+  },
+
+  async changePassword(payload: ChangePasswordRequest) {
+    const { data } = await apiClient.post<AuthApiResponse>("/api/auth/change-password", payload)
     return data
   },
 

@@ -15,6 +15,7 @@ const shareRoute = require("./routes/share");
 const favoritesRoute = require('./routes/favorites');
 const sharedRoute = require('./routes/shared');
 const notificationsRoute = require('./routes/notifications');
+const profileRoute = require('./routes/profile');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 const { apiLimiter } = require('./middleware/rateLimiter');
@@ -91,6 +92,7 @@ app.use('/api/folders', folderRoute);
 app.use('/api/favorites', favoritesRoute);
 app.use('/api/shared', sharedRoute);
 app.use('/api/notifications', notificationsRoute);
+app.use('/api/profile', profileRoute);
 app.use('/share', shareRoute);
 app.use('/api-docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

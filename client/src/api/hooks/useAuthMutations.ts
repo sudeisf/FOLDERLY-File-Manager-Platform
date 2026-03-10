@@ -31,3 +31,9 @@ export const useForgotPasswordResetMutation = () => {
     mutationFn: authApi.forgotPasswordReset,
   })
 }
+
+export const useChangePasswordMutation = () => {
+  return useMutation({
+    mutationFn: authApi.changePassword,
+  })
+}

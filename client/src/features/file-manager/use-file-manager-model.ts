@@ -29,13 +29,14 @@ export type FileManagerModel = {
   totalUsed: number
   usedPercent: number
   isUploading: boolean
+  isSharing: boolean
   uploadProgress: number
   refreshFolders: () => Promise<void>
   uploadFile: (payload: { file: File; folderName: string }) => Promise<void>
   deleteSelectedFile: () => Promise<void>
   downloadSelectedFile: () => Promise<void>
   downloadActiveFolderZip: () => Promise<void>
-  shareActiveFolder: () => Promise<void>
+  shareActiveFolder: (emails?: string[]) => Promise<void>
 }
 
 export const useFileManagerModel = (): FileManagerModel => {
@@ -49,6 +50,7 @@ export const useFileManagerModel = (): FileManagerModel => {
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
   const [search, setSearch] = useState("")
   const [isUploading, setIsUploading] = useState(false)
+  const [isSharing, setIsSharing] = useState(false)
   const [uploadProgress, setUploadProgress] = useState(0)
 
   const activeFolder = useMemo(() => {
@@ -256,39 +258,61 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
   }
 
-  const shareActiveFolder = async () => {
+  const shareActiveFolder = async (emails: string[] = []) => {
     if (!activeFolder) {
       return
     }
 
     try {
+      setIsSharing(true)
+
       const response = await shareMutation.mutateAsync(activeFolder.id)
       const link = response?.link
       if (typeof link === "string" && link.length > 0 && navigator.clipboard?.writeText) {
         await navigator.clipboard.writeText(link)
       }
 
-      const emailsInput = window.prompt("Share with emails (comma-separated). Leave empty to only copy link.")
-      const emails = (emailsInput ?? "")
-        .split(",")
-        .map((value) => value.trim().toLowerCase())
-        .filter((value) => value.length > 0)
-
-      if (emails.length > 0) {
-        await sharedApi.shareFolderWithUsers(activeFolder.id, { emails })
+      if (emails.length === 0) {
+        toast({
+          title: "Share link ready",
+          description: "Folder link copied to clipboard.",
+        })
+        return
       }
 
-      toast({
-        title: "Share link ready",
-        description: emails.length > 0 ? "Folder link copied and recipients notified." : "Folder link copied to clipboard.",
-      })
+      try {
+        await sharedApi.shareFolderWithUsers(activeFolder.id, { emails })
+        toast({
+          title: "Shared successfully",
+          description: "Folder link copied and recipients notified.",
+        })
+      } catch (shareWithUsersError: any) {
+        const apiMessage =
+          shareWithUsersError?.response?.data?.message ||
+          (typeof shareWithUsersError?.response?.data === "string" ? shareWithUsersError.response.data : "") ||
+          shareWithUsersError?.message ||
+          "Could not share folder with selected recipients."
+
+        toast({
+          title: "Shared link copied",
+          description: `Link copied, but recipient sharing failed: ${apiMessage}`,
+          variant: "destructive",
+        })
+      }
     } catch (error) {
       console.error(error)
+      const apiMessage =
+        (error as any)?.response?.data?.message ||
+        (typeof (error as any)?.response?.data === "string" ? (error as any).response.data : "") ||
+        (error as Error)?.message ||
+        "Could not generate a share link for this folder."
       toast({
         title: "Share failed",
-        description: "Could not generate a share link for this folder.",
+        description: apiMessage,
         variant: "destructive",
       })
+    } finally {
+      setIsSharing(false)
     }
   }
 
@@ -309,6 +333,7 @@ export const useFileManagerModel = (): FileManagerModel => {
     totalUsed,
     usedPercent,
     isUploading,
+    isSharing,
     uploadProgress,
     refreshFolders,
     uploadFile,

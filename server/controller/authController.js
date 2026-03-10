@@ -216,6 +216,51 @@ const forgotPasswordResetController = async (req, res) => {
     }
 };
 
+const changePasswordController = async (req, res) => {
+    try {
+        const userId = req.user?.sub || req.user?.id;
+        if (!userId) {
+            return res.status(401).send({ message: 'Unauthorized' });
+        }
+
+        const currentPassword = String(req.body.currentPassword || '');
+        const newPassword = String(req.body.newPassword || '');
+
+        if (!currentPassword || newPassword.length < 6) {
+            return res.status(400).send({ message: 'Current password and a new password (min 6 chars) are required' });
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { id: true, password: true },
+        });
+
+        if (!user) {
+            return res.status(404).send({ message: 'User not found' });
+        }
+
+        const isCurrentValid = await uitls.comparePassword(currentPassword, user.password);
+        if (!isCurrentValid) {
+            return res.status(401).send({ message: 'Current password is incorrect' });
+        }
+
+        const isSamePassword = await uitls.comparePassword(newPassword, user.password);
+        if (isSamePassword) {
+            return res.status(400).send({ message: 'New password must be different from current password' });
+        }
+
+        const newHash = await uitls.generatePassword(newPassword);
+        await prisma.user.update({
+            where: { id: userId },
+            data: { password: newHash },
+        });
+
+        return res.status(200).send({ success: true, message: 'Password changed successfully' });
+    } catch (e) {
+        return res.status(500).send({ message: e.message || 'Failed to change password' });
+    }
+};
+
 
 module.exports = {
     loginController,
@@ -223,4 +268,5 @@ module.exports = {
     forgotPasswordRequestController,
     forgotPasswordVerifyController,
     forgotPasswordResetController,
+    changePasswordController,
 }

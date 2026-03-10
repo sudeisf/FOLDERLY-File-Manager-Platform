@@ -14,6 +14,11 @@ export type NotificationItem = {
 }
 
 export const notificationsApi = {
+  async count() {
+    const { data } = await apiClient.get<{ unreadCount: number }>("/api/notifications/count")
+    return data
+  },
+
   async list(tab: NotificationTab) {
     const { data } = await apiClient.get<NotificationItem[]>("/api/notifications", {
       params: { tab },

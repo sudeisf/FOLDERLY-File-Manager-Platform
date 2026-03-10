@@ -64,6 +64,7 @@ export default function NotificationsPage() {
 
     socket.on("notification:new", () => {
       queryClient.invalidateQueries({ queryKey: queryKeys.notifications.all })
+      queryClient.invalidateQueries({ queryKey: queryKeys.notifications.count })
     })
 
     return () => {

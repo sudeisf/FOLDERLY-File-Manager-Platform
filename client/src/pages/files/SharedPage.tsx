@@ -50,7 +50,9 @@ export default function SharedPage() {
       queryClient.invalidateQueries({ queryKey: queryKeys.shared.items })
     })
 
-    return () => socket.disconnect()
+    return () => {
+      socket.disconnect()
+    }
   }, [queryClient])
 
   const items = useMemo(() => sharedQuery.data?.items ?? [], [sharedQuery.data])
