@@ -393,27 +393,22 @@ const getItemActivity = async (req, res) => {
             return res.status(400).send('type must be file or folder');
         }
 
-        // verify the requesting user has access to this item (either as owner OR as shared user)
+        // verify the requesting user has access to this item (either as shared user)
+        // Note: owner check not included as userId from auth is UUID not ObjectID
         const item = type === 'folder'
             ? await prisma.folder.findFirst({
                 where: {
                     id,
-                    OR: [
-                        { userId },                    // owner
-                        { sharedWithUserIds: { has: userId } }, // shared with user
-                    ],
+                    sharedWithUserIds: { has: userId },
                 },
-                select: { id: true, userId: true },
+                select: { id: true },
             })
             : await prisma.file.findFirst({
                 where: {
                     id,
-                    OR: [
-                        { userId },                    // owner
-                        { sharedWithUserIds: { has: userId } }, // shared with user
-                    ],
+                    sharedWithUserIds: { has: userId },
                 },
-                select: { id: true, userId: true },
+                select: { id: true },
             });
 
         if (!item) {
