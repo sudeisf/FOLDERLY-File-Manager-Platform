@@ -2,6 +2,14 @@
 
 FOLDERLY is a full-stack file manager platform with secure authentication, folder organization, cloud storage (Supabase), share links, starring, notifications, inline file viewing, and ZIP export.
 
+## About
+
+A full-stack file management platform that lets users upload and organize files into folders, share files or folders with expiring links, star important items, manage downloads and deletions, receive notifications, and export folders as ZIPs, powered by secure JWT auth and Supabase cloud storage.
+
+## Topics
+
+`file-manager`, `file-sharing`, `cloud-storage`, `react`, `typescript`, `nodejs`, `express`, `prisma`, `mongodb`, `supabase`, `jwt-authentication`, `tailwindcss`, `notifications`, `docker`, `zip-export`
+
 ## Tech Stack
 
 [![React](https://img.shields.io/badge/React-20232A?logo=react&logoColor=61DAFB)](https://react.dev/)
