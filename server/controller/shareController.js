@@ -1,6 +1,15 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { enqueueNotificationJob } = require('../queue/notificationQueue');
+const Sstorage = require('../config/supabaseConfig');
+
+const STORAGE_BUCKET = 'Files-uploader';
+
+const getPublicUrl = (path) => {
+    if (!path) return null;
+    const { data } = Sstorage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data?.publicUrl ?? null;
+};
 
 const getUserId = (user) => user?.sub || user?.id;
 
@@ -146,6 +155,44 @@ const shareFolderWithUsers = async (req, res) => {
         ]);
 
         const validRecipients = recipients.filter((recipient) => recipient.id !== ownerUserId);
+
+        // look up owner username for activity messages
+        const owner = await prisma.user.findUnique({
+            where: { id: ownerUserId },
+            select: { username: true },
+        });
+        const ownerName = owner?.username ?? 'Someone';
+        const recipientNames = validRecipients.map((r) => r.username).join(', ');
+        const shareMessage = `${ownerName} shared this folder with ${recipientNames}`;
+
+        // log activity on the folder
+        await logActivity({
+            actorId: ownerUserId,
+            actorName: ownerName,
+            itemId: folder.id,
+            itemType: 'folder',
+            event: 'shared',
+            message: shareMessage,
+        });
+
+        // log activity on each file inside the folder
+        const folderFiles = await prisma.file.findMany({
+            where: { folderId: folder.id, userId: ownerUserId },
+            select: { id: true },
+        });
+
+        await Promise.all(
+            folderFiles.map((file) =>
+                logActivity({
+                    actorId: ownerUserId,
+                    actorName: ownerName,
+                    itemId: file.id,
+                    itemType: 'file',
+                    event: 'shared',
+                    message: `${ownerName} shared this file with ${recipientNames}`,
+                })
+            )
+        );
 
         await Promise.all(
             validRecipients.map((recipient) =>
@@ -299,7 +346,7 @@ const getSharedView = async (req, res) => {
                 name: file.name,
                 size: file.size,
                 folderId: file.folderId,
-                url: file.url,
+                url: getPublicUrl(file.url),
                 isStarred: file.isStarred,
                 owner: {
                     id: file.user.id,
@@ -321,9 +368,76 @@ const getSharedView = async (req, res) => {
     }
 };
 
+// ─── log a share activity for all affected item IDs ───────────────────────────
+
+const logActivity = async ({ actorId, actorName, itemId, itemType, event, message }) => {
+    try {
+        await prisma.activityLog.create({
+            data: { actorId, actorName, itemId, itemType, event, message },
+        });
+    } catch (err) {
+        // never let activity logging break the main flow
+        console.warn('[ActivityLog] write failed:', err.message);
+    }
+};
+
+// ─── get last 3 activity events for a file or folder ──────────────────────────
+
+const getItemActivity = async (req, res) => {
+    try {
+        const userId = getUserId(req.user);
+        if (!userId) return res.status(401).send('Unauthorized');
+
+        const { type, id } = req.params;
+        if (!['file', 'folder'].includes(type)) {
+            return res.status(400).send('type must be file or folder');
+        }
+
+        // verify the requesting user has access to this item (either as owner OR as shared user)
+        const item = type === 'folder'
+            ? await prisma.folder.findFirst({
+                where: {
+                    id,
+                    OR: [
+                        { userId },                    // owner
+                        { sharedWithUserIds: { has: userId } }, // shared with user
+                    ],
+                },
+                select: { id: true, userId: true },
+            })
+            : await prisma.file.findFirst({
+                where: {
+                    id,
+                    OR: [
+                        { userId },                    // owner
+                        { sharedWithUserIds: { has: userId } }, // shared with user
+                    ],
+                },
+                select: { id: true, userId: true },
+            });
+
+        if (!item) {
+            return res.status(403).send('Access denied');
+        }
+
+        const activities = await prisma.activityLog.findMany({
+            where: { itemId: id, itemType: type },
+            orderBy: { createdAt: 'desc' },
+            take: 3,
+        });
+
+        return res.status(200).json({ activities });
+    } catch (error) {
+        console.error('Internal server error:', error.message);
+        return res.status(500).send('Internal server error');
+    }
+};
+
 module.exports = {
     GenerateShareLink,
     AccessShared,
     getSharedView,
     shareFolderWithUsers,
+    getItemActivity,
+    logActivity,
 }

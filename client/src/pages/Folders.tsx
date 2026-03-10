@@ -197,8 +197,18 @@ export default function Folders() {
             throw new Error('Share link was not returned');
           }
 
-          if (navigator?.clipboard?.writeText) {
+          try {
             await navigator.clipboard.writeText(shareLink);
+          } catch {
+            const el = document.createElement("textarea");
+            el.value = shareLink;
+            el.style.position = "fixed";
+            el.style.opacity = "0";
+            document.body.appendChild(el);
+            el.focus();
+            el.select();
+            document.execCommand("copy");
+            document.body.removeChild(el);
           }
           toast({
             title: "Share link copied",

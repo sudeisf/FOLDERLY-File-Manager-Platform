@@ -23,10 +23,26 @@ export type ShareWithUsersPayload = {
   userIds?: string[]
 }
 
+export type ActivityEvent = {
+  id: string
+  actorId: string
+  actorName: string
+  itemId: string
+  itemType: "file" | "folder"
+  event: string
+  message: string
+  createdAt: string
+}
+
 export const sharedApi = {
   async list() {
     const { data } = await apiClient.get<{ items: SharedItem[]; folders: SharedItem[]; files: SharedItem[] }>("/api/shared")
     return data
+  },
+
+  async getItemActivity(type: "file" | "folder", id: string) {
+    const { data } = await apiClient.get<{ activities: ActivityEvent[] }>(`/api/shared/${type}/${id}/activity`)
+    return data.activities
   },
 
   async shareFolderWithUsers(folderId: string, payload: ShareWithUsersPayload) {

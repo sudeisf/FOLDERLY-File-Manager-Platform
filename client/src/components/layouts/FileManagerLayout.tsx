@@ -6,6 +6,7 @@ import { useQueryClient } from "@tanstack/react-query"
 
 import { useNotificationCountQuery } from "@/api/hooks/useNotifications"
 import { useMyProfileQuery } from "@/api/hooks/useProfile"
+import { useItemActivityQuery } from "@/api/hooks/useSharedItems"
 import { queryKeys } from "@/api/queryKeys"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -48,6 +49,12 @@ export default function FileManagerLayout() {
   const isWideContentRoute = isProfileRoute || isNotificationsRoute
   const [isPlansOpen, setIsPlansOpen] = useState(false)
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
+
+  // Activity query - fetches when a file is selected
+  const activityQuery = useItemActivityQuery(
+    model.selectedFile ? "file" : null,
+    model.selectedFile?.id ?? null
+  )
   const queryClient = useQueryClient()
   const notificationCountQuery = useNotificationCountQuery()
   const unreadCount = notificationCountQuery.data?.unreadCount ?? 0
@@ -344,46 +351,40 @@ export default function FileManagerLayout() {
                     <div className="pt-1">
                       <h4 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recent Activity</h4>
 
-                      <div className="space-y-0">
-                        <div className="group relative flex gap-x-3">
-                          <div className="relative after:absolute after:bottom-0 after:start-1/2 after:top-4 after:w-px after:-translate-x-[0.5px] after:bg-border">
-                            <div className="relative z-10 flex h-4 w-4 items-center justify-center">
-                              <div className="h-2.5 w-2.5 rounded-full bg-blue-600" />
-                            </div>
-                          </div>
-
-                          <div className="grow pb-4 pt-0.5">
-                            <p className="text-sm font-semibold leading-5">You uploaded a new version</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">10 mins ago</p>
-                          </div>
+                      {activityQuery.isLoading ? (
+                        <div className="space-y-3">
+                          {[1,2,3].map((i) => (
+                            <div key={i} className="h-10 animate-pulse rounded bg-slate-100 dark:bg-slate-800" />
+                          ))}
                         </div>
+                      ) : activityQuery.data && activityQuery.data.length > 0 ? (
+                        <div className="space-y-0">
+                          {activityQuery.data.map((act, idx) => {
+                            const diff = Math.max(0, Date.now() - new Date(act.createdAt).getTime())
+                            const mins = Math.floor(diff / 60_000)
+                            const hours = Math.floor(diff / 3_600_000)
+                            const days = Math.floor(diff / 86_400_000)
+                            let timeLabel = mins < 1 ? "just now" : mins < 60 ? `${mins} min${mins > 1 ? "s" : ""} ago` : hours < 24 ? `${hours} hour${hours > 1 ? "s" : ""} ago` : days === 1 ? "yesterday" : `${days} days ago`
 
-                        <div className="group relative flex gap-x-3">
-                          <div className="relative after:absolute after:bottom-0 after:start-1/2 after:top-4 after:w-px after:-translate-x-[0.5px] after:bg-border">
-                            <div className="relative z-10 flex h-4 w-4 items-center justify-center">
-                              <div className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                            </div>
-                          </div>
+                            return (
+                              <div key={act.id} className="group relative flex gap-x-3">
+                                <div className={`relative after:absolute after:bottom-0 after:start-1/2 after:top-4 after:w-px after:-translate-x-[0.5px] after:bg-border ${idx === activityQuery.data!.length - 1 ? "after:hidden" : ""}`}>
+                                  <div className="relative z-10 flex h-4 w-4 items-center justify-center">
+                                    <div className={`h-2.5 w-2.5 rounded-full ${idx === 0 ? "bg-blue-600" : "bg-slate-300 dark:bg-slate-600"}`} />
+                                  </div>
+                                </div>
 
-                          <div className="grow pb-4 pt-0.5">
-                            <p className="text-sm font-semibold leading-5">Sarah Miller viewed the file</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">1h ago</p>
-                          </div>
+                                <div className={`grow pb-4 pt-0.5 ${idx === activityQuery.data!.length - 1 ? "pb-0.5" : ""}`}>
+                                  <p className="text-sm font-semibold leading-5">{act.message}</p>
+                                  <p className="mt-0.5 text-xs text-muted-foreground">{timeLabel}</p>
+                                </div>
+                              </div>
+                            )
+                          })}
                         </div>
-
-                        <div className="group relative flex gap-x-3">
-                          <div className="relative">
-                            <div className="relative z-10 flex h-4 w-4 items-center justify-center">
-                              <div className="h-2.5 w-2.5 rounded-full bg-slate-300 dark:bg-slate-600" />
-                            </div>
-                          </div>
-
-                          <div className="grow pb-0.5 pt-0.5">
-                            <p className="text-sm font-semibold leading-5">Shared with Web Team</p>
-                            <p className="mt-0.5 text-xs text-muted-foreground">Yesterday, 4:12 PM</p>
-                          </div>
-                        </div>
-                      </div>
+                      ) : (
+                        <p className="text-xs text-muted-foreground">No activity yet.</p>
+                      )}
                     </div>
                   </div>
                 </aside>}

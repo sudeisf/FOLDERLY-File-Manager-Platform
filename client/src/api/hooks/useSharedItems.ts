@@ -3,6 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { queryKeys } from "@/api/queryKeys"
 import { sharedApi, type ShareWithUsersPayload } from "@/api/shared"
 
+export const useItemActivityQuery = (type: "file" | "folder" | null, id: string | null) => {
+  return useQuery({
+    queryKey: ["shared-activity", type, id],
+    queryFn: () => sharedApi.getItemActivity(type!, id!),
+    enabled: !!type && !!id,
+    staleTime: 30_000,
+  })
+}
+
 export const useSharedItemsQuery = () => {
   return useQuery({
     queryKey: queryKeys.shared.items,

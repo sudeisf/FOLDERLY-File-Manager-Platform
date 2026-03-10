@@ -101,6 +101,22 @@ model Notification {
   @@index([userId, type, createdAt])
 }
 
+model ActivityLog {
+  id         String   @id @default(auto()) @map("_id") @db.ObjectId
+  // who performed the action
+  actorId    String   @db.ObjectId
+  actorName  String
+  // what resource was affected
+  itemId     String   @db.ObjectId
+  itemType   String   // "file" | "folder"
+  // event info
+  event      String   // e.g. "shared", "viewed", "uploaded", "downloaded"
+  message    String
+  createdAt  DateTime @default(now())
+
+  @@index([itemId, itemType, createdAt])
+}
+
 model Profile {
   id                    String   @id @default(auto()) @map("_id") @db.ObjectId
   userId                String   @unique @db.ObjectId
