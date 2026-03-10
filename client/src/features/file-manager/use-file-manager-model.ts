@@ -6,6 +6,7 @@ import {
   useUploadFileMutation,
 } from "@/api/hooks/useFileManagerMutations"
 import { filesApi } from "@/api/files"
+import { sharedApi } from "@/api/shared"
 import { useFolder } from "@/hooks/useFolder"
 import { toast } from "@/hooks/use-toast"
 
@@ -267,9 +268,19 @@ export const useFileManagerModel = (): FileManagerModel => {
         await navigator.clipboard.writeText(link)
       }
 
+      const emailsInput = window.prompt("Share with emails (comma-separated). Leave empty to only copy link.")
+      const emails = (emailsInput ?? "")
+        .split(",")
+        .map((value) => value.trim().toLowerCase())
+        .filter((value) => value.length > 0)
+
+      if (emails.length > 0) {
+        await sharedApi.shareFolderWithUsers(activeFolder.id, { emails })
+      }
+
       toast({
         title: "Share link ready",
-        description: "Folder link copied to clipboard.",
+        description: emails.length > 0 ? "Folder link copied and recipients notified." : "Folder link copied to clipboard.",
       })
     } catch (error) {
       console.error(error)

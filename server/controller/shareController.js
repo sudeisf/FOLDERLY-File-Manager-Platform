@@ -4,26 +4,33 @@ const { enqueueNotificationJob } = require('../queue/notificationQueue');
 
 const getUserId = (user) => user?.sub || user?.id;
 
+const uniqObjectIds = (values) => {
+    return [...new Set(
+        (values || [])
+            .filter((value) => typeof value === 'string' && value.trim().length > 0)
+            .map((value) => value.trim())
+    )];
+};
+
 
 const GenerateShareLink = async (req, res) => {    
     try {
-        const user = req.user;
-        //check if user is authenticated
-        if(!user){
+        const userId = getUserId(req.user);
+        if (!userId) {
             return res.status(401).send('Unauthorized');
-        }    
-        //find folder by id
+        }
+
         const folder = await prisma.folder.findUnique({
             where: {
                 id: req.params.folderId,
             },
         });
-        //check if folder exists
+
         if(!folder){    
             return res.status(404).send('Folder not found');
         }
-        //create share link
-        if (!folder || folder.userId !== user.sub) {
+
+        if (!folder || folder.userId !== userId) {
             return res.status(404).send('Folder not found');
         }
 
@@ -33,11 +40,11 @@ const GenerateShareLink = async (req, res) => {
                 expiresAt : new Date(Date.now() + 1000 * 60 * 60 * 24),// 24 hours
             }
         });
-        //generate share link
+
         const shareLink = `${req.protocol}://${req.get('host')}/share/${share.id}`;
 
         await enqueueNotificationJob({
-            userId: user.sub || user.id,
+            userId,
             type: 'system',
             title: 'Share Link Created',
             message: `A share link for ${folder.name} was created and will expire in 24 hours.`,
@@ -57,6 +64,117 @@ const GenerateShareLink = async (req, res) => {
         return res.status(500).send('Internal server error');
     }
 }
+
+const shareFolderWithUsers = async (req, res) => {
+    try {
+        const ownerUserId = getUserId(req.user);
+        if (!ownerUserId) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        const folderId = req.params.id;
+        const rawEmails = Array.isArray(req.body?.emails) ? req.body.emails : [];
+        const rawUserIds = Array.isArray(req.body?.userIds) ? req.body.userIds : [];
+
+        const emails = uniqObjectIds(rawEmails.map((value) => String(value).toLowerCase()));
+        const userIds = uniqObjectIds(rawUserIds.map((value) => String(value)));
+
+        if (!emails.length && !userIds.length) {
+            return res.status(400).send('Provide at least one recipient via emails or userIds');
+        }
+
+        const folder = await prisma.folder.findFirst({
+            where: {
+                id: folderId,
+                userId: ownerUserId,
+            },
+            select: {
+                id: true,
+                name: true,
+                sharedWithUserIds: true,
+            },
+        });
+
+        if (!folder) {
+            return res.status(404).send('Folder not found');
+        }
+
+        const userFilters = [];
+        if (emails.length) {
+            userFilters.push({ email: { in: emails } });
+        }
+        if (userIds.length) {
+            userFilters.push({ id: { in: userIds } });
+        }
+
+        const recipients = await prisma.user.findMany({
+            where: {
+                OR: userFilters,
+            },
+            select: {
+                id: true,
+                username: true,
+                email: true,
+            },
+        });
+
+        const recipientIds = uniqObjectIds(recipients.map((recipient) => recipient.id))
+            .filter((id) => id !== ownerUserId);
+
+        if (!recipientIds.length) {
+            return res.status(404).send('No valid recipients found');
+        }
+
+        const updatedFolderSharedWith = uniqObjectIds([...(folder.sharedWithUserIds || []), ...recipientIds]);
+
+        await prisma.$transaction([
+            prisma.folder.update({
+                where: { id: folder.id },
+                data: {
+                    sharedWithUserIds: updatedFolderSharedWith,
+                },
+            }),
+            prisma.file.updateMany({
+                where: {
+                    folderId: folder.id,
+                    userId: ownerUserId,
+                },
+                data: {
+                    sharedWithUserIds: updatedFolderSharedWith,
+                },
+            }),
+        ]);
+
+        const validRecipients = recipients.filter((recipient) => recipient.id !== ownerUserId);
+
+        await Promise.all(
+            validRecipients.map((recipient) =>
+                enqueueNotificationJob({
+                    userId: recipient.id,
+                    type: 'share',
+                    title: 'Folder Shared With You',
+                    message: `${folder.name} was shared with you.`,
+                    metadata: {
+                        folderId: folder.id,
+                        folderName: folder.name,
+                        ownerUserId,
+                    },
+                })
+            )
+        );
+
+        return res.status(200).json({
+            success: true,
+            message: 'Folder shared successfully',
+            folderId: folder.id,
+            sharedWithUserIds: updatedFolderSharedWith,
+            recipients: validRecipients,
+        });
+    } catch (error) {
+        console.error('Internal server error:', error.message);
+        return res.status(500).send('Internal server error');
+    }
+};
 
 
 const AccessShared = async (req, res) => {    
@@ -206,5 +324,6 @@ const getSharedView = async (req, res) => {
 module.exports = {
     GenerateShareLink,
     AccessShared,
-    getSharedView
+    getSharedView,
+    shareFolderWithUsers,
 }
