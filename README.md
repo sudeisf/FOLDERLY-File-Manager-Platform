@@ -1,6 +1,6 @@
-# File Uploader
+# FOLDERLY-file-manager-platform
 
-A full-stack file management platform with authentication, folder organization, cloud storage (Supabase), share links, inline file viewing, and ZIP export.
+FOLDERLY is a full-stack file manager platform with secure authentication, folder organization, cloud storage (Supabase), share links, starring, notifications, inline file viewing, and ZIP export.
 
 ## Tech Stack
 
