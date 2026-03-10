@@ -14,6 +14,7 @@ model User {
   email    String    @unique
   folders  Folder[]
   files    File[]
+  notifications Notification[]
 }
 
 model Session {
@@ -39,25 +40,41 @@ model PasswordResetOtp {
 }
 
 model Folder {
-  id     String  @id @default(auto()) @map("_id") @db.ObjectId
-  name   String
-  userId String  @db.ObjectId
-  user   User    @relation(fields: [userId], references: [id])
-  files  File[]
-  Shares Share[] @relation("FolderShares")
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  userId            String   @db.ObjectId
+  user              User     @relation(fields: [userId], references: [id])
+  parentId          String?  @db.ObjectId
+  parent            Folder?  @relation("FolderToFolder", fields: [parentId], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  children          Folder[] @relation("FolderToFolder")
+  isStarred         Boolean  @default(false)
+  sharedWithUserIds String[] @db.ObjectId
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+  files             File[]
+  Shares            Share[]  @relation("FolderShares")
+
+  @@index([userId])
+  @@index([parentId])
 }
 
 model File {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
-  name      String
-  uid       String
-  url       String
-  size      Int
-  folderId  String?  @db.ObjectId
-  folder    Folder?  @relation(fields: [folderId], references: [id])
-  userId    String   @db.ObjectId
-  user      User     @relation(fields: [userId], references: [id])
-  createdAt DateTime @default(now())
+  id                String   @id @default(auto()) @map("_id") @db.ObjectId
+  name              String
+  uid               String
+  url               String
+  size              Int
+  folderId          String?  @db.ObjectId
+  folder            Folder?  @relation(fields: [folderId], references: [id])
+  userId            String   @db.ObjectId
+  user              User     @relation(fields: [userId], references: [id])
+  isStarred         Boolean  @default(false)
+  sharedWithUserIds String[] @db.ObjectId
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([userId])
+  @@index([folderId])
 }
 
 model Share {
@@ -65,4 +82,20 @@ model Share {
   folderId  String   @db.ObjectId
   folder    Folder   @relation(fields: [folderId], references: [id], name: "FolderShares")
   expiresAt DateTime
+}
+
+model Notification {
+  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  userId    String   @db.ObjectId
+  user      User     @relation(fields: [userId], references: [id])
+  type      String
+  title     String
+  message   String
+  metadata  Json?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@index([userId, isRead, createdAt])
+  @@index([userId, type, createdAt])
 }

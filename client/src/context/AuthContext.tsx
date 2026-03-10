@@ -1,8 +1,14 @@
-import axios from "axios";
-import { createContext, useContext, useEffect, useState } from "react";
+import { createContext, useContext, useEffect } from "react";
+
+import { useAuthStore } from "@/stores/authStore";
+import type { AuthUser } from "@/stores/authStore";
 
 type AuthContextType = {
-  isLoggedIn: boolean | null;
+  isLoggedIn: boolean;
+  user: AuthUser | null;
+  token: string | null;
+  setSession: (payload: { token: string; user: AuthUser }) => void;
+  clearSession: () => void;
   setIsLoggedIn: (isLoggedIn: boolean) => void;
   logout: () => Promise<void>;
   loading: boolean;
@@ -10,58 +16,26 @@ type AuthContextType = {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-const fetchAuthStatus = async (): Promise<{ success: boolean }> => {
-  const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/protected`, {
-    withCredentials: true,
-  });
-  // Backend responses can be either { success } or { data: { success } }.
-  return response.data?.data ?? response.data;
-};
-
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [isLoggedIn, setIsLoggedIn] = useState<boolean | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const token = useAuthStore((state) => state.token);
+  const user = useAuthStore((state) => state.user);
+  const isLoggedIn = useAuthStore((state) => state.isLoggedIn);
+  const setSession = useAuthStore((state) => state.setSession);
+  const clearSession = useAuthStore((state) => state.clearSession);
+  const setIsLoggedIn = useAuthStore((state) => state.setIsLoggedIn);
+  const loading = useAuthStore((state) => state.loading);
+  const checkAuthStatus = useAuthStore((state) => state.checkAuthStatus);
+  const logout = useAuthStore((state) => state.logout);
 
  
   useEffect(() => {
-    const checkAuthStatus = async () => {
-      try {
-        const data = await fetchAuthStatus();
-        const authenticated = Boolean(data?.success);
-        setIsLoggedIn(authenticated);
-        if (authenticated) {
-          localStorage.setItem("isLoggedIn", "true");
-        } else {
-          localStorage.removeItem("isLoggedIn");
-        }
-      } catch {
-        setIsLoggedIn(false);
-        localStorage.removeItem("isLoggedIn");
-      } finally {
-        setLoading(false);
-      }
-    };
-
     checkAuthStatus();
-  }, []);
-
-  const logout = async () => {
-    try {
-      const response = await axios.get(`${import.meta.env.VITE_API_URL}/api/auth/logout`, {
-        withCredentials: true,
-      });
-      const data = response.data;
-      if (data.success) {
-        setIsLoggedIn(false);
-        localStorage.removeItem("isLoggedIn");
-      }
-    } catch (error) {
-      console.error("Logout failed:", error);
-    }
-  };
+  }, [checkAuthStatus]);
 
   return (
-    <AuthContext.Provider value={{ isLoggedIn, setIsLoggedIn, logout, loading }}>
+    <AuthContext.Provider
+      value={{ token, user, isLoggedIn, setSession, clearSession, setIsLoggedIn, logout, loading }}
+    >
       {children}
     </AuthContext.Provider>
   );

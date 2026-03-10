@@ -23,7 +23,7 @@ import {
   FormMessage,
 } from "@/components/ui/form";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
-import axios from "axios";
+import { useFolderNamesQuery } from "@/api/hooks/useFolderNamesQuery";
 
 const FormSchema = z.object({
   folder: z.string().min(1, "Please select a folder."),
@@ -37,31 +37,11 @@ interface ComboboxProps {
 
 export default function Combobox({ onFolderSelect, refreshToken = 0, selectedFolder = "" }: ComboboxProps) {
   const [open, setOpen] = useState(false);
-  const [folders, setFolders] = useState<string[]>([]); // Array to store folder names (string[])
+  const { data: folders = [] } = useFolderNamesQuery(refreshToken);
   const form = useForm<z.infer<typeof FormSchema>>({
     resolver: zodResolver(FormSchema),
     defaultValues: { folder: "" },
   });
-
-  useEffect(() => {
-    const fetchFolderNames = async () => {
-      try {
-        const API_URL = import.meta.env.VITE_API_URL
-        const res = await axios.get(`${API_URL}/api/folders/get-folders-names`, {
-          withCredentials: true,
-        });
-
-        if (res.status === 200) {
-          // Set fetched folder names directly
-          setFolders(res.data); // Since the response is an array of folder names
-        }
-      } catch (err) {
-        console.log(err);
-      }
-    };
-
-    fetchFolderNames();
-  }, [refreshToken]);
 
   useEffect(() => {
     form.setValue("folder", selectedFolder);

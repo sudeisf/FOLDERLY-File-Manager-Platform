@@ -3,12 +3,48 @@ const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
 const { Readable } = require('stream');
 const archiver = require('archiver');
+const { enqueueNotificationJob } = require('../queue/notificationQueue');
 
 const getUserId = (user) => user?.sub || user?.id;
 
+const buildFolderPathSegments = async ({ folderId, userId }) => {
+    const segments = [];
+    const visited = new Set();
+    let currentFolderId = folderId;
+
+    while (currentFolderId) {
+        if (visited.has(currentFolderId)) {
+            throw new Error('Circular folder hierarchy detected');
+        }
+
+        visited.add(currentFolderId);
+
+        const folder = await prisma.folder.findFirst({
+            where: {
+                id: currentFolderId,
+                userId,
+            },
+            select: {
+                id: true,
+                name: true,
+                parentId: true,
+            },
+        });
+
+        if (!folder) {
+            throw new Error('Folder not found');
+        }
+
+        segments.unshift(folder.name);
+        currentFolderId = folder.parentId;
+    }
+
+    return segments;
+};
+
 
 const uploadFile = async (req, res) => {
-    const { folder } = req.body;
+    const { folder, folderId } = req.body;
     const user = req.user;
     const file = req.file;
 
@@ -25,29 +61,73 @@ const uploadFile = async (req, res) => {
         }
 
        
-        let folderName = folder || "public";
+        const normalizedFolderId = typeof folderId === 'string' ? folderId.trim() : '';
+        const normalizedFolderName = typeof folder === 'string' ? folder.trim() : '';
 
-        let folderRecord = await prisma.folder.findFirst({
-            where: {
-                name: folderName,
-                userId,
-            },
-        });
+        let folderRecord = null;
+        let folderPath = 'public';
 
-        if (!folderRecord) {
-            folderRecord = await prisma.folder.create({
-                data: {
-                    name: folderName,
+        if (normalizedFolderId) {
+            folderRecord = await prisma.folder.findFirst({
+                where: {
+                    id: normalizedFolderId,
                     userId,
                 },
+                select: {
+                    id: true,
+                    name: true,
+                    parentId: true,
+                },
             });
+
+            if (!folderRecord) {
+                return res.status(404).send('Folder not found');
+            }
+
+            const pathSegments = await buildFolderPathSegments({
+                folderId: folderRecord.id,
+                userId,
+            });
+            folderPath = pathSegments.join('/');
+        } else {
+            const fallbackFolderName = normalizedFolderName || 'public';
+
+            folderRecord = await prisma.folder.findFirst({
+                where: {
+                    name: fallbackFolderName,
+                    userId,
+                    parentId: null,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                    parentId: true,
+                },
+            });
+
+            if (!folderRecord) {
+                folderRecord = await prisma.folder.create({
+                    data: {
+                        name: fallbackFolderName,
+                        userId,
+                        parentId: null,
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                        parentId: true,
+                    },
+                });
+            }
+
+            folderPath = folderRecord.name;
         }
        
 
 
         const fileContent = file.buffer;
         const { data, error } = await Sstorage.from("Files-uploader").upload(
-            `${userId}/${folderName}/${file.originalname}`,
+            `${userId}/${folderPath}/${file.originalname}`,
             fileContent,
             {
                 contentType: file.mimetype,
@@ -77,8 +157,22 @@ const uploadFile = async (req, res) => {
         });
 
         // Step 5: Return success response
+        await enqueueNotificationJob({
+            userId,
+            type: 'system',
+            title: 'Upload Complete',
+            message: `${file.originalname} was uploaded successfully.`,
+            metadata: {
+                folderId: folderRecord.id,
+                folderPath,
+                fileName: file.originalname,
+            },
+        });
+
         return res.status(200).send({
             message: 'File uploaded successfully',
+            folderPath,
+            folderId: folderRecord.id,
         });
     } catch (error) {
         console.error('Internal server error:', error.message);

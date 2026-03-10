@@ -4,11 +4,10 @@ import {z} from "zod"
 import {zodResolver} from "@hookform/resolvers/zod"
 import {  useForm } from "react-hook-form"
 import { Form , FormControl, FormField, FormItem, FormLabel, FormMessage } from "../ui/form"
-import axios from "axios"
 import type { AxiosError } from "axios"
+import { useRegisterMutation } from "@/api/hooks/useAuthMutations"
 import { useToast } from "@/hooks/use-toast"
 import { Link, useNavigate } from "react-router-dom"
-import { useState } from "react";   
 import { Loader2 } from "lucide-react";
 import AuthSplitLayout from "@/components/layouts/AuthSplitLayout"
 const formSchema = z.object({
@@ -19,9 +18,10 @@ const formSchema = z.object({
 
 
 export default function Register() {
-    const [loading, setLoading] = useState<boolean>(false);
     const {toast  } = useToast();
     const navigate = useNavigate();
+    const registerMutation = useRegisterMutation();
+    const loading = registerMutation.isPending;
     const form = useForm<z.infer<typeof formSchema>>({
         resolver: zodResolver(formSchema),
         defaultValues: {
@@ -40,17 +40,13 @@ export default function Register() {
 
     async function onSubmit(values: z.infer<typeof formSchema>) { 
         try{
-            setLoading(true);
-            const API = import.meta.env.VITE_API_URL;
-            const response = await axios.post(`${API}/api/auth/register`, values ,{withCredentials: true});
-            const data = response.data;
+            const data = await registerMutation.mutateAsync(values);
             if(data.success){
                 toast({
                     title: "Success",
                     description: data.message,
                     variant: "default",
                 })
-                setLoading(false);
                 navigate("/login");
             }
         }catch(e: unknown){
@@ -62,7 +58,6 @@ export default function Register() {
                 description: message,
                 variant: "destructive",
             })      
-            setLoading(false);
         }
     }
 

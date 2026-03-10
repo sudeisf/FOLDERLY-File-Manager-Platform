@@ -4,9 +4,45 @@ const prisma = new PrismaClient();
 
 const getUserId = (user) => user?.sub || user?.id;
 
+const buildFolderPathSegments = async ({ folderId, userId }) => {
+    const segments = [];
+    const visited = new Set();
+    let currentFolderId = folderId;
+
+    while (currentFolderId) {
+        if (visited.has(currentFolderId)) {
+            throw new Error('Circular folder hierarchy detected');
+        }
+
+        visited.add(currentFolderId);
+
+        const folder = await prisma.folder.findFirst({
+            where: {
+                id: currentFolderId,
+                userId,
+            },
+            select: {
+                id: true,
+                name: true,
+                parentId: true,
+            },
+        });
+
+        if (!folder) {
+            throw new Error('Parent folder not found');
+        }
+
+        segments.unshift(folder.name);
+        currentFolderId = folder.parentId;
+    }
+
+    return segments;
+};
+
 const createFolder = async (req, res) => {
     try {
         const name = (req.body?.name || '').trim();
+        const parentId = (req.body?.parentId || '').trim() || null;
         const user = req.user;
         const userId = user?.sub || user?.id;
 
@@ -18,10 +54,32 @@ const createFolder = async (req, res) => {
             return res.status(400).send('Folder name is required');
         }
 
+        if (parentId && req.body?.id && parentId === req.body.id) {
+            return res.status(400).send('A folder cannot be its own parent');
+        }
+
+        let parentFolder = null;
+        if (parentId) {
+            parentFolder = await prisma.folder.findFirst({
+                where: {
+                    id: parentId,
+                    userId,
+                },
+                select: {
+                    id: true,
+                },
+            });
+
+            if (!parentFolder) {
+                return res.status(404).send('Parent folder not found');
+            }
+        }
+
         const existingFolder = await prisma.folder.findFirst({
             where: {
                 name,
                 userId,
+                parentId,
             },
         });
 
@@ -33,8 +91,14 @@ const createFolder = async (req, res) => {
             data: {
                 userId,
                 name,
+                parentId,
             },
         });
+
+        const pathSegments = parentId
+            ? await buildFolderPathSegments({ folderId: folder.id, userId })
+            : [folder.name];
+        const folderPath = pathSegments.join('/');
 
         // Do not fail folder creation if storage sync is temporarily unavailable.
         let storageBucket = null;
@@ -43,7 +107,7 @@ const createFolder = async (req, res) => {
         try {
             const placeHolderFile = new Blob(['placeholder file'], { type: 'text/plain' });
             const { data, error } = await storage.from('Files-uploader').upload(
-                `${userId}/${folder.name}/readme.txt`,
+                `${userId}/${folderPath}/readme.txt`,
                 placeHolderFile
             );
 
@@ -60,6 +124,8 @@ const createFolder = async (req, res) => {
             success: true,
             message: storageWarning ? 'Folder created, but storage sync failed' : 'Folder created successfully',
             folderID: folder.id,
+            parentId: folder.parentId,
+            folderPath,
             storageBucket,
             storageWarning,
         });

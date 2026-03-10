@@ -1,5 +1,8 @@
 const { PrismaClient } = require('@prisma/client');
 const prisma = new PrismaClient();
+const { enqueueNotificationJob } = require('../queue/notificationQueue');
+
+const getUserId = (user) => user?.sub || user?.id;
 
 
 const GenerateShareLink = async (req, res) => {    
@@ -32,6 +35,18 @@ const GenerateShareLink = async (req, res) => {
         });
         //generate share link
         const shareLink = `${req.protocol}://${req.get('host')}/share/${share.id}`;
+
+        await enqueueNotificationJob({
+            userId: user.sub || user.id,
+            type: 'system',
+            title: 'Share Link Created',
+            message: `A share link for ${folder.name} was created and will expire in 24 hours.`,
+            metadata: {
+                folderId: folder.id,
+                shareId: share.id,
+                expiresAt: share.expiresAt,
+            },
+        });
 
         return res.status(200).json({
             message : 'Share link generated',
@@ -97,7 +112,99 @@ const AccessShared = async (req, res) => {
     }
 }
 
+const getSharedView = async (req, res) => {
+    try {
+        const userId = getUserId(req.user);
+        if (!userId) {
+            return res.status(401).send('Unauthorized');
+        }
+
+        const [sharedFolders, sharedFiles] = await Promise.all([
+            prisma.folder.findMany({
+                where: {
+                    sharedWithUserIds: {
+                        has: userId,
+                    },
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            username: true,
+                            email: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    updatedAt: 'desc',
+                },
+            }),
+            prisma.file.findMany({
+                where: {
+                    sharedWithUserIds: {
+                        has: userId,
+                    },
+                },
+                include: {
+                    user: {
+                        select: {
+                            id: true,
+                            username: true,
+                            email: true,
+                        },
+                    },
+                },
+                orderBy: {
+                    updatedAt: 'desc',
+                },
+            }),
+        ]);
+
+        const items = [
+            ...sharedFolders.map((folder) => ({
+                type: 'folder',
+                id: folder.id,
+                name: folder.name,
+                parentId: folder.parentId,
+                isStarred: folder.isStarred,
+                owner: {
+                    id: folder.user.id,
+                    username: folder.user.username,
+                    email: folder.user.email,
+                },
+                sharedAt: folder.updatedAt,
+            })),
+            ...sharedFiles.map((file) => ({
+                type: 'file',
+                id: file.id,
+                uid: file.uid,
+                name: file.name,
+                size: file.size,
+                folderId: file.folderId,
+                url: file.url,
+                isStarred: file.isStarred,
+                owner: {
+                    id: file.user.id,
+                    username: file.user.username,
+                    email: file.user.email,
+                },
+                sharedAt: file.updatedAt,
+            })),
+        ].sort((a, b) => new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime());
+
+        return res.status(200).json({
+            items,
+            folders: items.filter((item) => item.type === 'folder'),
+            files: items.filter((item) => item.type === 'file'),
+        });
+    } catch (error) {
+        console.error('Internal server error:', error.message);
+        return res.status(500).send('Internal server error');
+    }
+};
+
 module.exports = {
     GenerateShareLink,
-    AccessShared
+    AccessShared,
+    getSharedView
 }

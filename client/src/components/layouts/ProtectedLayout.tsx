@@ -6,19 +6,12 @@ export default function ProtectedLayout() {
     const location = useLocation();
 
     if (loading) {
-        return <div>Loading...</div>;
-    }
-
-    // Store the current location in sessionStorage
-    if (!isLoggedIn && location.pathname !== '/login') {
-        // Only store the location if it's not already the login page
-        sessionStorage.setItem('lastPage', location.pathname);
+        return <div className="grid min-h-screen place-content-center text-sm text-muted-foreground">Checking session...</div>;
     }
 
     if (!isLoggedIn) {
-        return <Navigate to="/login" />;
+        return <Navigate to="/login" replace state={{ from: location.pathname }} />;
     }
 
-    // If logged in, show the protected content
     return <Outlet />;
 }
