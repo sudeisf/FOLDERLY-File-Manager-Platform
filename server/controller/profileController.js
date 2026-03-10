@@ -56,6 +56,25 @@ const getMyProfile = async (req, res) => {
   }
 };
 
+// Get general recent activity for the user
+const getMyRecentActivity = async (req, res) => {
+  try {
+    const userId = req.user?.sub || req.user?.id;
+    if (!userId) {
+      return res.status(401).send('Unauthorized');
+    }
+    const activities = await prisma.activityLog.findMany({
+      where: { actorId: userId },
+      orderBy: { createdAt: 'desc' },
+      take: 10,
+    });
+    return res.status(200).json({ activities });
+  } catch (error) {
+    console.error('Internal server error:', error.message);
+    return res.status(500).send('Internal server error');
+  }
+};
+
 const updateMyProfile = async (req, res) => {
   try {
     const userId = getUserId(req.user);
@@ -91,6 +110,7 @@ const updateMyProfile = async (req, res) => {
       if (existingUsername) {
         return res.status(409).send('Username already in use');
       }
+        getMyRecentActivity,
       userUpdates.username = normalizedUsername;
     }
 
@@ -234,4 +254,5 @@ module.exports = {
   getMyProfile,
   updateMyProfile,
   uploadMyProfileImage,
+  getMyRecentActivity,
 };

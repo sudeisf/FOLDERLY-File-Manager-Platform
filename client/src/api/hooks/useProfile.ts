@@ -3,6 +3,15 @@ import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query"
 import { profileApi, type UpdateProfilePayload } from "@/api/profile"
 import { queryKeys } from "@/api/queryKeys"
 
+export const useMyRecentActivityQuery = () => {
+  return useQuery({
+    queryKey: ["profile", "recentActivity"],
+    queryFn: profileApi.getMyRecentActivity,
+    staleTime: 30_000,
+    refetchOnWindowFocus: false,
+  })
+}
+
 export const useMyProfileQuery = () => {
   return useQuery({
     queryKey: queryKeys.profile.me,

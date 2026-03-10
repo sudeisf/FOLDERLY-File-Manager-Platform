@@ -6,6 +6,9 @@ export const queryKeys = {
   shared: {
     items: ["shared-items"] as const,
   },
+  favorites: {
+    all: ["favorites"] as const,
+  },
   notifications: {
     all: ["notifications"] as const,
     count: ["notifications", "count"] as const,

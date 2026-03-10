@@ -2,8 +2,7 @@ import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
 import type { AxiosError } from "axios"
 import { Bell, Camera, Loader2, Lock, ShieldCheck, User } from "lucide-react"
 
-import { useChangePasswordMutation } from "@/api/hooks/useAuthMutations"
-import { useMyProfileQuery, useUpdateMyProfileMutation, useUploadMyAvatarMutation } from "@/api/hooks/useProfile"
+// ...existing code...
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
@@ -12,6 +11,8 @@ import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
+import { useChangePasswordMutation } from "@/api/hooks/useAuthMutations"
+import { useMyProfileQuery, useMyRecentActivityQuery, useUpdateMyProfileMutation, useUploadMyAvatarMutation } from "@/api/hooks/useProfile"
 
 type ProfileFormState = {
   username: string
@@ -493,6 +494,7 @@ export default function ProfilePage() {
         </CardContent>
       </Card>
 
+     
       <div className="mt-4 flex items-center justify-between text-xs text-slate-500 dark:text-slate-400">
         <span className="inline-flex items-center gap-1">
           <User className="h-3.5 w-3.5" />

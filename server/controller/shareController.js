@@ -1,4 +1,5 @@
 const { PrismaClient } = require('@prisma/client');
+const { ObjectId } = require('mongodb');
 const prisma = new PrismaClient();
 const { enqueueNotificationJob } = require('../queue/notificationQueue');
 const Sstorage = require('../config/supabaseConfig');
@@ -393,19 +394,27 @@ const getItemActivity = async (req, res) => {
             return res.status(400).send('type must be file or folder');
         }
 
+        // Validate and convert ID to ObjectId if needed
+        let objectId;
+        try {
+            objectId = new ObjectId(id);
+        } catch {
+            return res.status(400).send('Invalid ID format');
+        }
+
         // verify the requesting user has access to this item (either as shared user)
         // Note: owner check not included as userId from auth is UUID not ObjectID
         const item = type === 'folder'
             ? await prisma.folder.findFirst({
                 where: {
-                    id,
+                    id: objectId,
                     sharedWithUserIds: { has: userId },
                 },
                 select: { id: true },
             })
             : await prisma.file.findFirst({
                 where: {
-                    id,
+                    id: objectId,
                     sharedWithUserIds: { has: userId },
                 },
                 select: { id: true },

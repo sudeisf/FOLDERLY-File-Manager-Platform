@@ -10,9 +10,11 @@ import Home from "@/pages/home"
 import AllFilesPage from "@/pages/files/AllFilesPage"
 import SharedPage from "@/pages/files/SharedPage"
 import StarredPage from "@/pages/files/StarredPage"
+import SharedLinkPage from "@/pages/files/SharedLinkPage"
 import ProfilePage from "@/pages/ProfilePage"
 import NotificationsPage from "@/pages/NotificationsPage"
 import { useAuth } from "@/context/AuthContext"
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query"
 
 function GuestOnlyRoute() {
   const { isLoggedIn } = useAuth()
@@ -28,6 +30,10 @@ const router = createBrowserRouter([
   {
     path: "/",
     element: <Navigate to="/protected/home" replace />,
+  },
+  {
+    path: "/share/:uuid",
+    element: <SharedLinkPage />,
   },
   {
     element: <GuestOnlyRoute />,
@@ -96,5 +102,10 @@ const router = createBrowserRouter([
 ])
 
 export default function App() {
-  return <RouterProvider router={router} />
+  const queryClient = new QueryClient()
+  return (
+    <QueryClientProvider client={queryClient}>
+      <RouterProvider router={router} />
+    </QueryClientProvider>
+  )
 }

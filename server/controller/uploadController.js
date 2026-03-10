@@ -4,6 +4,7 @@ const prisma = new PrismaClient();
 const { Readable } = require('stream');
 const archiver = require('archiver');
 const { enqueueNotificationJob } = require('../queue/notificationQueue');
+const { logActivity } = require('./shareController');
 
 const getUserId = (user) => user?.sub || user?.id;
 
@@ -315,6 +316,16 @@ const downloadFile = async (req, res) => {
       if (!file) {
         return res.status(404).send('File not found');
       }
+
+      // Log activity for file download
+      await logActivity({
+        actorId: userId,
+        actorName: 'User',
+        itemId: file.id,
+        itemType: 'file',
+        event: 'download',
+        message: `Downloaded file: ${file.name}`,
+      });
   
       const { data, error } = await Sstorage.from("Files-uploader").download(file.url);
       if (error) {
@@ -395,6 +406,16 @@ const viewFile = async (req, res) => {
             if (!file) {
                 return res.status(404).send('File not found');
             }
+
+            // Log activity for file view
+            await logActivity({
+                actorId: userId,
+                actorName: 'User',
+                itemId: file.id,
+                itemType: 'file',
+                event: 'view',
+                message: `Viewed file: ${file.name}`,
+            });
 
             const { data, error } = await Sstorage.from("Files-uploader").download(file.url);
             if (error) {

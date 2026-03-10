@@ -60,4 +60,9 @@ export const profileApi = {
 
     return data
   },
+
+  async getMyRecentActivity() {
+    const { data } = await apiClient.get<{ activities: any[] }>("/api/profile/me/activity")
+    return data.activities
+  },
 }

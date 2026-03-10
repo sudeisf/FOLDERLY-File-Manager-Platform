@@ -36,13 +36,12 @@ if (IS_PRODUCTION && SESSION_SECRET === 'dev-insecure-session-secret') {
   throw new Error('SESSION_SECRET must be set in production');
 }
 
-// Required when running behind nginx/reverse proxies to get real client IP.
+
 app.set('trust proxy', process.env.TRUST_PROXY ? Number(process.env.TRUST_PROXY) : 1);
 
 app.use(
   cors({
     origin: (origin, callback) => {
-      // Allow same-origin and non-browser requests (e.g., health checks).
       if (!origin || allowedOrigins.includes(origin)) {
         return callback(null, true);
       }
@@ -85,7 +84,6 @@ app.use(passport.initialize());
 app.use(passport.session());
 app.use(['/api', '/share'], apiLimiter);
 
-// Routes
 app.use('/api/auth', authRoute);
 app.use('/api/files', fileRoute);
 app.use('/api/folders', folderRoute);

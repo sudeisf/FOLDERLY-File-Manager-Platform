@@ -7,6 +7,7 @@ export type FileItem = {
     mimetype: string
     size: number
   }
+  type?: "file" | "shared"
 }
 
 export type FolderItem = {

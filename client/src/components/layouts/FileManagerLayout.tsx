@@ -125,7 +125,7 @@ export default function FileManagerLayout() {
                 <div className="flex items-center gap-2 px-2">
                   <div className="grid h-8 w-8 place-content-center rounded-lg bg-blue-600 text-xs font-semibold text-white">C</div>
                   <div className="group-data-[collapsible=icon]:hidden">
-                    <p className="text-sm font-semibold">CloudBox</p>
+                    <p className="text-sm font-semibold">FOLDERLY</p>
                   </div>
                 </div>
               </SidebarHeader>
