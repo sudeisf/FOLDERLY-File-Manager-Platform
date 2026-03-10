@@ -56,6 +56,34 @@ const uploadFile = async (req, res) => {
             return res.status(401).send('Unauthorized');
         }
 
+        // Enforce 35 MB per-user storage limit
+        const userFiles = await prisma.file.findMany({
+            where: { userId },
+            select: { size: true },
+        });
+        const totalUsed = userFiles.reduce((sum, f) => sum + (parseInt(f.size, 10) || 0), 0);
+        const maxAllowed = 35 * 1024 * 1024; // 35 MB in bytes
+        const newFileSize = parseInt(file.size, 10) || 0;
+        if (totalUsed + newFileSize > maxAllowed) {
+            return res.status(400).send('Storage limit exceeded: You are allowed a maximum of 35 MB.');
+        }
+
+        // Notify user if usage exceeds 80% of limit
+        const percentUsed = ((totalUsed + newFileSize) / maxAllowed) * 100;
+        if (percentUsed > 80) {
+            await enqueueNotificationJob({
+                userId,
+                type: 'system',
+                title: 'Storage Nearly Full',
+                message: `You have used ${(totalUsed + newFileSize) / (1024 * 1024) > 35 ? 35 : ((totalUsed + newFileSize) / (1024 * 1024)).toFixed(2)} MB out of 35 MB. Please manage your files.`,
+                metadata: {
+                    percentUsed: percentUsed.toFixed(2),
+                    totalUsed: (totalUsed + newFileSize),
+                    maxAllowed,
+                },
+            });
+        }
+
       
         if (!file) {
             return res.status(400).send('Please upload a file');

@@ -11,7 +11,7 @@ import { queryKeys } from "@/api/queryKeys"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import PlansDialog from "@/components/dialog/PlansDialog"
+// Removed PlansDialog import
 import ShareWithUsersDialog from "@/components/dialog/ShareWithUsersDialog"
 import { useAuth } from "@/context/AuthContext"
 import { Input } from "@/components/ui/input"
@@ -47,7 +47,7 @@ export default function FileManagerLayout() {
   const isProfileRoute = location.pathname === "/protected/profile"
   const isNotificationsRoute = location.pathname === "/protected/notifications"
   const isWideContentRoute = isProfileRoute || isNotificationsRoute
-  const [isPlansOpen, setIsPlansOpen] = useState(false)
+  // Removed isPlansOpen state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
 
   // Activity query - fetches when a file is selected
@@ -199,11 +199,8 @@ export default function FileManagerLayout() {
                     <Progress value={model.usedPercent} className="h-1.5" />
                     <div className="flex items-center justify-between text-xs text-muted-foreground">
                       <span>{bytesToLabel(model.totalUsed)} used</span>
-                      <span>{model.usedPercent.toFixed(0)}%</span>
+                      <span>35 MB allowed</span>
                     </div>
-                    <Button variant="outline" size="sm" className="w-full text-xs" onClick={() => setIsPlansOpen(true)}>
-                      Upgrade Plan
-                    </Button>
                   </CardContent>
                 </Card>
 
@@ -392,7 +389,7 @@ export default function FileManagerLayout() {
             </SidebarInset>
         </div>
       </SidebarProvider>
-      <PlansDialog open={isPlansOpen} onOpenChange={setIsPlansOpen} />
+      {/* Removed PlansDialog modal */}
       <ShareWithUsersDialog
         open={isShareDialogOpen}
         onOpenChange={setIsShareDialogOpen}

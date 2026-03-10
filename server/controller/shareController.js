@@ -278,90 +278,49 @@ const AccessShared = async (req, res) => {
     }
 }
 
-const getSharedView = async (req, res) => {
+const { Queue } = require('bullmq');
+const { getRedisConnection } = require('../queue/redisConnection');
+const shareQueue = new Queue('share-jobs', { connection: getRedisConnection() });
+
+const shareFolderWithUsers = async (req, res) => {
     try {
-        const userId = getUserId(req.user);
-        if (!userId) {
+        const ownerUserId = getUserId(req.user);
+        if (!ownerUserId) {
             return res.status(401).send('Unauthorized');
         }
 
-        const [sharedFolders, sharedFiles] = await Promise.all([
-            prisma.folder.findMany({
-                where: {
-                    sharedWithUserIds: {
-                        has: userId,
-                    },
-                },
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            username: true,
-                            email: true,
-                        },
-                    },
-                },
-                orderBy: {
-                    updatedAt: 'desc',
-                },
-            }),
-            prisma.file.findMany({
-                where: {
-                    sharedWithUserIds: {
-                        has: userId,
-                    },
-                },
-                include: {
-                    user: {
-                        select: {
-                            id: true,
-                            username: true,
-                            email: true,
-                        },
-                    },
-                },
-                orderBy: {
-                    updatedAt: 'desc',
-                },
-            }),
-        ]);
+        const folderId = req.params.id;
+        const rawEmails = Array.isArray(req.body?.emails) ? req.body.emails : [];
+        const rawUserIds = Array.isArray(req.body?.userIds) ? req.body.userIds : [];
 
-        const items = [
-            ...sharedFolders.map((folder) => ({
-                type: 'folder',
-                id: folder.id,
-                name: folder.name,
-                parentId: folder.parentId,
-                isStarred: folder.isStarred,
-                owner: {
-                    id: folder.user.id,
-                    username: folder.user.username,
-                    email: folder.user.email,
-                },
-                sharedAt: folder.updatedAt,
-            })),
-            ...sharedFiles.map((file) => ({
-                type: 'file',
-                id: file.id,
-                uid: file.uid,
-                name: file.name,
-                size: file.size,
-                folderId: file.folderId,
-                url: getPublicUrl(file.url),
-                isStarred: file.isStarred,
-                owner: {
-                    id: file.user.id,
-                    username: file.user.username,
-                    email: file.user.email,
-                },
-                sharedAt: file.updatedAt,
-            })),
-        ].sort((a, b) => new Date(b.sharedAt).getTime() - new Date(a.sharedAt).getTime());
+        const emails = uniqObjectIds(rawEmails.map((value) => String(value).toLowerCase()));
+        const userIds = uniqObjectIds(rawUserIds.map((value) => String(value)));
+
+        if (!emails.length && !userIds.length) {
+            return res.status(400).send('Provide at least one recipient via emails or userIds');
+        }
+
+        // Enqueue share job
+        await shareQueue.add('share-folder', {
+            ownerUserId,
+            folderId,
+            emails,
+            userIds,
+        }, {
+            attempts: 3,
+            backoff: { type: 'exponential', delay: 1000 },
+            removeOnComplete: 100,
+            removeOnFail: 100,
+        });
 
         return res.status(200).json({
-            items,
-            folders: items.filter((item) => item.type === 'folder'),
-            files: items.filter((item) => item.type === 'file'),
+            message: 'Folder sharing is being processed in the background.',
+        });
+    } catch (error) {
+        console.error('Internal server error:', error.message);
+        return res.status(500).send('Internal server error');
+    }
+}
         });
     } catch (error) {
         console.error('Internal server error:', error.message);
