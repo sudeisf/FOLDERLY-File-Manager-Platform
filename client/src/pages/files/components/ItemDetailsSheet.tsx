@@ -28,7 +28,6 @@ export function ItemDetailsSheet({ item, open, onClose }: ItemDetailsSheetProps)
 
   const sizeLabel = bytesToLabel(item.size)
   const ext = item.type === "file" ? fileExtension(item.name) : null
-  const activities = activityQuery.data ?? []
 
   const handleCopy = () => {
     const text = item.url ?? item.id
@@ -169,11 +168,9 @@ export function ItemDetailsSheet({ item, open, onClose }: ItemDetailsSheetProps)
                   />
                 ))}
               </div>
-            ) : activities.length === 0 ? (
-              <p className="text-xs text-slate-400">No activity yet.</p>
-            ) : (
+            ) : activityQuery.data && activityQuery.data.length > 0 ? (
               <ol className="relative border-l border-slate-200 dark:border-slate-700 space-y-4 pl-4">
-                {activities.map((act, idx) => (
+                {activityQuery.data.map((act, idx) => (
                   <li key={act.id} className="relative">
                     <span
                       className={`absolute -left-[21px] flex h-3.5 w-3.5 items-center justify-center rounded-full ${

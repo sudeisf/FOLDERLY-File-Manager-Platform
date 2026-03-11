@@ -7,22 +7,23 @@ import { useSharedItemsQuery } from "@/api/hooks/useSharedItems"
 import { type SharedItem } from "@/api/shared"
 import { queryKeys } from "@/api/queryKeys"
 import { Button } from "@/components/ui/button"
+import { useSharedViewStore } from "@/stores/sharedViewStore"
 
 import {
   EmptyState,
   ItemDetailsSheet,
   SharedItemCard,
   SharedItemRow,
+  SharedEmptyState,
 } from "./components"
-
-type Tab = "all" | "folders" | "files"
 
 export default function SharedPage() {
   const queryClient = useQueryClient()
   const sharedQuery = useSharedItemsQuery()
-  const [activeTab, setActiveTab] = useState<Tab>("all")
   const [selectedItem, setSelectedItem] = useState<SharedItem | null>(null)
-  const [viewMode, setViewMode] = useState<"list" | "grid">("list")
+  
+  // Use persisted store for view mode and active tab
+  const { viewMode, activeTab, setViewMode, setActiveTab } = useSharedViewStore()
 
   useEffect(() => {
     const baseURL = String(import.meta.env.VITE_API_URL || "")
@@ -50,7 +51,7 @@ export default function SharedPage() {
     return allItems
   }, [allItems, activeTab])
 
-  const tabs: { key: Tab; label: string }[] = [
+  const tabs: { key: typeof activeTab; label: string }[] = [
     { key: "all", label: "All Items" },
     { key: "folders", label: "Folders" },
     { key: "files", label: "Files" },
@@ -143,7 +144,7 @@ export default function SharedPage() {
         {!sharedQuery.isLoading && !sharedQuery.isError && (
           <>
             {visibleItems.length === 0 ? (
-              <EmptyState />
+              <SharedEmptyState />
             ) : viewMode === "list" ? (
               <div className="space-y-3">
                 {visibleItems.map((item) => (
