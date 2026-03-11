@@ -2,6 +2,7 @@ import { useMutation, useQueryClient } from "@tanstack/react-query"
 import type { AxiosProgressEvent } from "axios"
 
 import { filesApi } from "@/api/files"
+import { favoritesApi } from "@/api/favorites"
 import { foldersApi } from "@/api/folders"
 import { queryKeys } from "@/api/queryKeys"
 import { shareApi } from "@/api/share"
@@ -49,5 +50,17 @@ export const useDeleteFileMutation = () => {
 export const useShareFolderMutation = () => {
   return useMutation({
     mutationFn: (folderId: string) => shareApi.generateFolderLink(folderId),
+  })
+}
+
+export const useToggleFileStarMutation = () => {
+  const queryClient = useQueryClient()
+
+  return useMutation({
+    mutationFn: (fileId: string) => favoritesApi.toggleFileStar(fileId),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: queryKeys.folders })
+      await queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all })
+    },
   })
 }

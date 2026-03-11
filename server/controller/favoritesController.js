@@ -11,18 +11,41 @@ const toggleFileStar = async (req, res) => {
       return res.status(401).send('Unauthorized');
     }
 
-    const file = await prisma.file.findFirst({
-      where: {
-        id: req.params.id,
-        userId,
-      },
-      select: {
-        id: true,
-        name: true,
-        isStarred: true,
-        updatedAt: true,
-      },
-    });
+    const { id } = req.params;
+    
+    // Check if id is a UUID (Supabase uid) or MongoDB ObjectId
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    let file;
+    if (isUUID) {
+      // Look up by uid (Supabase)
+      file = await prisma.file.findFirst({
+        where: {
+          uid: id,
+          userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          isStarred: true,
+          updatedAt: true,
+        },
+      });
+    } else {
+      // Look up by id (MongoDB ObjectId)
+      file = await prisma.file.findFirst({
+        where: {
+          id: id,
+          userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          isStarred: true,
+          updatedAt: true,
+        },
+      });
+    }
 
     if (!file) {
       return res.status(404).send('File not found');
@@ -57,18 +80,40 @@ const toggleFolderStar = async (req, res) => {
       return res.status(401).send('Unauthorized');
     }
 
-    const folder = await prisma.folder.findFirst({
-      where: {
-        id: req.params.id,
-        userId,
-      },
-      select: {
-        id: true,
-        name: true,
-        isStarred: true,
-        updatedAt: true,
-      },
-    });
+    const { id } = req.params;
+    
+    // Check if id is a UUID or MongoDB ObjectId
+    const isUUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(id);
+    
+    let folder;
+    if (isUUID) {
+      // Look up by id (folder name as UUID) or just use the id directly
+      folder = await prisma.folder.findFirst({
+        where: {
+          id: id,
+          userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          isStarred: true,
+          updatedAt: true,
+        },
+      });
+    } else {
+      folder = await prisma.folder.findFirst({
+        where: {
+          id: id,
+          userId,
+        },
+        select: {
+          id: true,
+          name: true,
+          isStarred: true,
+          updatedAt: true,
+        },
+      });
+    }
 
     if (!folder) {
       return res.status(404).send('Folder not found');

@@ -8,6 +8,7 @@ export type FileItem = {
     size: number
   }
   type?: "file" | "shared"
+  isStarred?: boolean
 }
 
 export type FolderItem = {

@@ -3,6 +3,7 @@ import { useMemo, useState } from "react"
 import {
   useDeleteFileMutation,
   useShareFolderMutation,
+  useToggleFileStarMutation,
   useUploadFileMutation,
 } from "@/api/hooks/useFileManagerMutations"
 import { filesApi } from "@/api/files"
@@ -37,6 +38,7 @@ export type FileManagerModel = {
   downloadSelectedFile: () => Promise<void>
   downloadActiveFolderZip: () => Promise<void>
   shareActiveFolder: (emails?: string[]) => Promise<void>
+  toggleFileStar: (fileId: string) => Promise<void>
 }
 
 export const useFileManagerModel = (): FileManagerModel => {
@@ -45,6 +47,7 @@ export const useFileManagerModel = (): FileManagerModel => {
   const uploadMutation = useUploadFileMutation()
   const deleteMutation = useDeleteFileMutation()
   const shareMutation = useShareFolderMutation()
+  const toggleStarMutation = useToggleFileStarMutation()
 
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null)
   const [selectedFileId, setSelectedFileId] = useState<string | null>(null)
@@ -329,6 +332,32 @@ export const useFileManagerModel = (): FileManagerModel => {
     }
   }
 
+  const toggleFileStar = async (fileId: string) => {
+    if (!fileId) {
+      toast({
+        title: "Error",
+        description: "File ID is missing.",
+        variant: "destructive",
+      })
+      return
+    }
+    try {
+      await toggleStarMutation.mutateAsync(fileId)
+      await refreshFolders()
+      toast({
+        title: "File updated",
+        description: "Star status changed.",
+      })
+    } catch (error) {
+      console.error(error)
+      toast({
+        title: "Error",
+        description: "Could not update star status.",
+        variant: "destructive",
+      })
+    }
+  }
+
   return {
     folders,
     isLoading,
@@ -354,5 +383,6 @@ export const useFileManagerModel = (): FileManagerModel => {
     downloadSelectedFile,
     downloadActiveFolderZip,
     shareActiveFolder,
+    toggleFileStar,
   }
 }

@@ -1,4 +1,4 @@
-import { FolderDown, LayoutGrid, List, Upload } from "lucide-react"
+import { FolderDown, LayoutGrid, List, Star, Upload } from "lucide-react"
 import { useState } from "react"
 import { useOutletContext } from "react-router-dom"
 
@@ -30,6 +30,11 @@ function FolderGlyph() {
       />
     </svg>
   )
+}
+
+// Check if file is an image that can be previewed
+function isImageFile(mimetype: string): boolean {
+  return mimetype.startsWith("image/")
 }
 
 export default function AllFilesPage() {
@@ -188,6 +193,7 @@ export default function AllFilesPage() {
               const key = file.uid ?? file.id ?? file.name
               const isSelected = (model.selectedFile?.uid ?? model.selectedFile?.id ?? model.selectedFile?.name) === key
               const Icon = getFileIcon(file.metadata.mimetype)
+              const isImage = isImageFile(file.metadata.mimetype)
 
               return (
                 <Card
@@ -199,12 +205,36 @@ export default function AllFilesPage() {
                   onClick={() => model.setSelectedFileId(file.uid ?? file.id ?? null)}
                 >
                   <CardContent className="space-y-4 p-4">
-                    <div className="flex items-center justify-between">
-                      <div className="grid h-10 w-10 place-content-center rounded-xl bg-primary/10 text-primary">
-                        <Icon className="h-5 w-5" />
+                    {isImage && "url" in file && (file as any).url ? (
+                      <div className="relative aspect-square w-full overflow-hidden rounded-lg bg-slate-100">
+                        <img
+                          src={(file as any).url}
+                          alt={file.name}
+                          className="h-full w-full object-cover"
+                        />
                       </div>
-                      <Checkbox checked={isSelected} />
-                    </div>
+                    ) : (
+                      <div className="flex items-center justify-between">
+                        <div className="grid h-10 w-10 place-content-center rounded-xl bg-primary/10 text-primary">
+                          <Icon className="h-5 w-5" />
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="icon"
+                            className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                            onClick={(e) => {
+                              e.stopPropagation()
+                              model.toggleFileStar(file.uid ?? file.id ?? "")
+                            }}
+                          >
+                            <Star className="h-4 w-4 text-slate-400 hover:text-amber-500" />
+                          </Button>
+                          <Checkbox checked={isSelected} />
+                        </div>
+                      </div>
+                    )}
                     <div>
                       <p className="truncate text-sm font-semibold">{file.name}</p>
                       <p className="text-xs text-muted-foreground">{bytesToLabel(file.metadata.size)}</p>
@@ -216,9 +246,10 @@ export default function AllFilesPage() {
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border bg-card">
-            <div className="grid grid-cols-[minmax(0,1fr)_120px_90px] border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
+            <div className="grid grid-cols-[minmax(0,1fr)_120px_40px_50px] border-b border-border px-4 py-2 text-xs font-semibold uppercase tracking-[0.08em] text-muted-foreground">
               <span>Name</span>
               <span>Size</span>
+              <span></span>
               <span className="text-right">Select</span>
             </div>
             <div>
@@ -232,7 +263,7 @@ export default function AllFilesPage() {
                     key={key}
                     type="button"
                     className={cn(
-                      "grid w-full grid-cols-[minmax(0,1fr)_120px_90px] items-center border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-muted/40",
+                      "grid w-full grid-cols-[minmax(0,1fr)_120px_40px_50px] items-center border-b border-border px-4 py-3 text-left last:border-b-0 hover:bg-muted/40",
                       isSelected && "bg-blue-50 dark:bg-blue-950/30"
                     )}
                     onClick={() => model.setSelectedFileId(file.uid ?? file.id ?? null)}
@@ -244,7 +275,19 @@ export default function AllFilesPage() {
                       <span className="truncate text-sm font-medium">{file.name}</span>
                     </span>
                     <span className="text-xs text-muted-foreground">{bytesToLabel(file.metadata.size)}</span>
-                    <span className="flex justify-end">
+                    <span className="flex items-center justify-end gap-2">
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="icon"
+                        className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                        onClick={(e) => {
+                          e.stopPropagation()
+                          model.toggleFileStar(file.uid ?? file.id ?? "")
+                        }}
+                      >
+                        <Star className="h-4 w-4 text-slate-400 hover:text-amber-500" />
+                      </Button>
                       <Checkbox checked={isSelected} />
                     </span>
                   </button>
