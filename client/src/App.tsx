@@ -1,6 +1,7 @@
 import { createBrowserRouter, Navigate, Outlet, RouterProvider } from "react-router-dom"
 
 import ProtectedLayout from "@/components/layouts/ProtectedLayout"
+import './global-folderly.css';
 import FileManagerLayout from "@/components/layouts/FileManagerLayout"
 import Login from "@/components/Forms/login"
 import Register from "@/components/Forms/SignIn"
