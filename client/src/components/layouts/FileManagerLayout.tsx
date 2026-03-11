@@ -6,7 +6,7 @@ import { useQueryClient } from "@tanstack/react-query"
 
 import { useNotificationCountQuery } from "@/api/hooks/useNotifications"
 import { useMyProfileQuery } from "@/api/hooks/useProfile"
-import { useItemActivityQuery } from "@/api/hooks/useSharedItems"
+import { useMyActivityQuery } from "@/api/hooks/useSharedItems"
 import { queryKeys } from "@/api/queryKeys"
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
@@ -50,11 +50,8 @@ export default function FileManagerLayout() {
   // Removed isPlansOpen state
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false)
 
-  // Activity query - fetches when a file is selected
-  const activityQuery = useItemActivityQuery(
-    model.selectedFile ? "file" : null,
-    model.selectedFile?.id ?? null
-  )
+  // Activity query - fetches user's recent activities
+  const activityQuery = useMyActivityQuery()
   const queryClient = useQueryClient()
   const notificationCountQuery = useNotificationCountQuery()
   const unreadCount = notificationCountQuery.data?.unreadCount ?? 0

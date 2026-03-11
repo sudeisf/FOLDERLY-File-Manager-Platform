@@ -12,7 +12,7 @@ import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useChangePasswordMutation } from "@/api/hooks/useAuthMutations"
-import { useMyProfileQuery, useMyRecentActivityQuery, useUpdateMyProfileMutation, useUploadMyAvatarMutation } from "@/api/hooks/useProfile"
+import { useMyProfileQuery, useUpdateMyProfileMutation, useUploadMyAvatarMutation } from "@/api/hooks/useProfile"
 
 type ProfileFormState = {
   username: string

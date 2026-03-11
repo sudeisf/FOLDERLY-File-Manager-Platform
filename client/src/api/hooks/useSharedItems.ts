@@ -12,6 +12,14 @@ export const useItemActivityQuery = (type: "file" | "folder" | null, id: string 
   })
 }
 
+export const useMyActivityQuery = () => {
+  return useQuery({
+    queryKey: ["my-activity"],
+    queryFn: () => sharedApi.getMyActivity(),
+    staleTime: 30_000,
+  })
+}
+
 export const useSharedItemsQuery = () => {
   return useQuery({
     queryKey: queryKeys.shared.items,

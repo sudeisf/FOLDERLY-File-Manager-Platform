@@ -45,6 +45,11 @@ export const sharedApi = {
     return data.activities
   },
 
+  async getMyActivity() {
+    const { data } = await apiClient.get<{ activities: ActivityEvent[] }>("/api/shared/my-activity")
+    return data.activities
+  },
+
   async shareFolderWithUsers(folderId: string, payload: ShareWithUsersPayload) {
     const { data } = await apiClient.post<{
       success: boolean

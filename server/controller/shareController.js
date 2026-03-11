@@ -1,4 +1,10 @@
-// ─── List items shared with the current user ────────────────────────────────
+const { PrismaClient } = require('@prisma/client');
+const { ObjectId } = require('mongodb');
+const prisma = new PrismaClient();
+const { enqueueNotificationJob } = require('../queue/notificationQueue');
+const Sstorage = require('../config/supabaseConfig');
+
+
 const listSharedItems = async (req, res) => {
     try {
         const userId = getUserId(req.user);
@@ -15,30 +21,50 @@ const listSharedItems = async (req, res) => {
                 user: {
                     select: { id: true, username: true, email: true }
                 },
+                updatedAt: true,
+                createdAt: true,
             },
         });
 
         // Find files shared with user
-        const files = await prisma.file.findMany({
-            where: {
-                sharedWithUserIds: { has: userId },
-            },
-            select: {
-                id: true,
-                name: true,
-                size: true,
-                url: true,
-                folderId: true,
-                owner: {
-                    select: { id: true, username: true, email: true }
+       const files = await prisma.file.findMany({
+                where: {
+                    sharedWithUserIds: {
+                    has: userId
+                    } 
                 },
-                sharedAt: true,
-            },
-        });
+                select: {
+                    id: true,
+                    name: true,
+                    size: true,
+                    url: true,
+                    folderId: true,
+                    user: {          
+                    select: {
+                        id: true,
+                        username: true,
+                        email: true
+                    }
+                    },
+                    updatedAt: true, 
+                    createdAt: true,
+                }
+                })
 
-        // Normalize type for frontend
-        const normFolders = folders.map(f => ({ ...f, type: 'folder' }));
-        const normFiles = files.map(f => ({ ...f, type: 'file' }));
+        // Normalize type for frontend - map user to owner and add sharedAt
+        const normFolders = folders.map(f => ({
+            ...f,
+            type: 'folder',
+            owner: f.user,
+            sharedAt: f.updatedAt,
+        }));
+        const normFiles = files.map(f => ({
+            ...f,
+            type: 'file',
+            owner: f.user,
+            sharedAt: f.updatedAt,
+            url: getPublicUrl(f.url), // Convert path to full public URL
+        }));
         const items = [...normFolders, ...normFiles];
 
         return res.json({ items, folders: normFolders, files: normFiles });
@@ -47,11 +73,7 @@ const listSharedItems = async (req, res) => {
         return res.status(500).send('Internal server error');
     }
 };
-const { PrismaClient } = require('@prisma/client');
-const { ObjectId } = require('mongodb');
-const prisma = new PrismaClient();
-const { enqueueNotificationJob } = require('../queue/notificationQueue');
-const Sstorage = require('../config/supabaseConfig');
+
 
 const STORAGE_BUCKET = 'Files-uploader';
 
@@ -400,11 +422,33 @@ const getItemActivity = async (req, res) => {
     }
 };
 
+// ─── get recent activities for the logged-in user ──────────────────────────────
+
+const getUserActivity = async (req, res) => {
+    try {
+        const userId = getUserId(req.user);
+        if (!userId) return res.status(401).send('Unauthorized');
+
+        // Get activities where the user is the actor (they performed the action)
+        const activities = await prisma.activityLog.findMany({
+            where: { actorId: userId },
+            orderBy: { createdAt: 'desc' },
+            take: 3,
+        });
+
+        return res.status(200).json({ activities });
+    } catch (error) {
+        console.error('Internal server error:', error.message);
+        return res.status(500).send('Internal server error');
+    }
+};
+
 module.exports = {
     GenerateShareLink,
     AccessShared,
     shareFolderWithUsers,
     getItemActivity,
+    getUserActivity,
     logActivity,
     listSharedItems,
 }
