@@ -10,7 +10,6 @@ import { Button } from "@/components/ui/button"
 import { useSharedViewStore } from "@/stores/sharedViewStore"
 
 import {
-  EmptyState,
   ItemDetailsSheet,
   SharedItemCard,
   SharedItemRow,

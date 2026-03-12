@@ -223,13 +223,13 @@ export default function AllFilesPage() {
                             type="button"
                             variant="ghost"
                             size="icon"
-                            className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                            className="h-8 w-8"
                             onClick={(e) => {
                               e.stopPropagation()
                               model.toggleFileStar(file.uid ?? file.id ?? "")
                             }}
                           >
-                            <Star className="h-4 w-4 text-slate-400 hover:text-amber-500" />
+                            <Star className={file.isStarred ? "h-4 w-4 fill-slate-900 dark:fill-white" : "h-4 w-4 stroke-slate-900 dark:stroke-white"} />
                           </Button>
                           <Checkbox checked={isSelected} />
                         </div>
@@ -280,13 +280,13 @@ export default function AllFilesPage() {
                         type="button"
                         variant="ghost"
                         size="icon"
-                        className="h-8 w-8 text-amber-500 hover:text-amber-600"
+                        className="h-8 w-8"
                         onClick={(e) => {
                           e.stopPropagation()
                           model.toggleFileStar(file.uid ?? file.id ?? "")
                         }}
                       >
-                        <Star className="h-4 w-4 text-slate-400 hover:text-amber-500" />
+                        <Star className={file.isStarred ? "h-4 w-4 fill-slate-900 dark:fill-white" : "h-4 w-4 stroke-slate-900 dark:stroke-white"} />
                       </Button>
                       <Checkbox checked={isSelected} />
                     </span>

@@ -1,6 +1,19 @@
 const { PrismaClient } = require('@prisma/client');
 
 const prisma = new PrismaClient();
+const Sstorage = require('../config/supabaseConfig');
+
+const STORAGE_BUCKET = 'Files-uploader';
+
+const getPublicUrl = (path) => {
+    if (!path) return null;
+    // If it's already a full URL, return it as-is
+    if (path.startsWith('http://') || path.startsWith('https://')) {
+        return path;
+    }
+    const { data } = Sstorage.from(STORAGE_BUCKET).getPublicUrl(path);
+    return data?.publicUrl ?? null;
+};
 
 const getUserId = (user) => user?.sub || user?.id;
 
@@ -186,7 +199,7 @@ const getFavorites = async (req, res) => {
         id: file.id,
         name: file.name,
         uid: file.uid,
-        url: file.url,
+        url: getPublicUrl(file.url),
         size: file.size,
         folderId: file.folderId,
         updatedAt: file.updatedAt,

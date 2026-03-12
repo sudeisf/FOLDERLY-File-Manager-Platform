@@ -58,6 +58,36 @@ export const useToggleFileStarMutation = () => {
 
   return useMutation({
     mutationFn: (fileId: string) => favoritesApi.toggleFileStar(fileId),
+    onMutate: async (fileId: string) => {
+      // Cancel any outgoing refetches
+      await queryClient.cancelQueries({ queryKey: queryKeys.folders })
+
+      // Snapshot the previous value
+      const previousFolders = queryClient.getQueryData(queryKeys.folders)
+
+      // Optimistically update the isStarred status
+      queryClient.setQueryData(queryKeys.folders, (old: any) => {
+        if (!old) return old
+        return old.map((folder: any) => ({
+          ...folder,
+          files: folder.files?.map((file: any) => {
+            const fileKey = file.uid ?? file.id ?? file.name
+            if (fileKey === fileId) {
+              return { ...file, isStarred: !file.isStarred }
+            }
+            return file
+          }),
+        }))
+      })
+
+      return { previousFolders }
+    },
+    onError: (_err, _fileId, context) => {
+      // Rollback on error
+      if (context?.previousFolders) {
+        queryClient.setQueryData(queryKeys.folders, context.previousFolders)
+      }
+    },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: queryKeys.folders })
       await queryClient.invalidateQueries({ queryKey: queryKeys.favorites.all })

@@ -107,7 +107,7 @@ export default function StarredPage() {
         {/* header */}
         <div className="mb-6 flex items-start justify-between gap-4">
           <div className="flex items-center gap-4">
-            <Star className="h-6 w-6 shrink-0 text-amber-500 fill-amber-500" />
+            <Star className="h-6 w-6 shrink-0 text-slate-600 dark:text-white stroke-2 fill-none" />
             <div>
               <h1 className="text-2xl font-bold text-slate-900 dark:text-slate-100">
                 Starred
@@ -183,7 +183,7 @@ export default function StarredPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="h-10 w-10 shrink-0 text-amber-500 hover:text-amber-600"
+                      className="h-10 w-10 shrink-0"
                       onClick={() => {
                         if (item.type === "folder") {
                           handleToggleFolderStar(item.id, item.name)
@@ -197,7 +197,7 @@ export default function StarredPage() {
                           : toggleFileStar.isPending
                       }
                     >
-                      <Star className="h-4 w-4 fill-current" />
+                      <Star className="h-4 w-4 fill-slate-900 dark:fill-white" />
                     </Button>
                   </div>
                 ))}
@@ -213,7 +213,7 @@ export default function StarredPage() {
                     <Button
                       variant="ghost"
                       size="icon"
-                      className="absolute right-2 top-2 h-8 w-8 bg-white/80 text-amber-500 hover:text-amber-600 dark:bg-slate-800/80"
+                      className="absolute right-2 top-2 h-8 w-8 bg-white/80 dark:bg-slate-800/80"
                       onClick={(e) => {
                         e.stopPropagation()
                         if (item.type === "folder") {
@@ -228,7 +228,7 @@ export default function StarredPage() {
                           : toggleFileStar.isPending
                       }
                     >
-                      <Star className="h-4 w-4 fill-current" />
+                      <Star className="h-4 w-4 fill-slate-900 dark:fill-white" />
                     </Button>
                   </div>
                 ))}

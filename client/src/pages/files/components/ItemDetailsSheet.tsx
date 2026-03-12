@@ -1,5 +1,4 @@
 import { CalendarDays, Download, ExternalLink, HardDrive, User, Users, X } from "lucide-react"
-import { useItemActivityQuery } from "@/api/hooks/useSharedItems"
 import { type SharedItem } from "@/api/shared"
 import { Button } from "@/components/ui/button"
 import {
@@ -22,8 +21,6 @@ interface ItemDetailsSheetProps {
 }
 
 export function ItemDetailsSheet({ item, open, onClose }: ItemDetailsSheetProps) {
-  const activityQuery = useItemActivityQuery(item?.type ?? null, item?.id ?? null)
-
   if (!item) return null
 
   const sizeLabel = bytesToLabel(item.size)

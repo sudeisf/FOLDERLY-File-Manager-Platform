@@ -179,9 +179,30 @@ const getFolders = async (req, res) => {
 
                     const sortedFiles = data.sort((a, b) => a.name.localeCompare(b.name));
 
+                    // Get isStarred status from database for each file
+                    const fileNames = sortedFiles.map(f => f.name);
+                    const dbFiles = await prisma.file.findMany({
+                        where: {
+                            userId,
+                            folderId: folder.id,
+                            name: { in: fileNames }
+                        },
+                        select: {
+                            name: true,
+                            isStarred: true
+                        }
+                    });
+                    const starredMap = new Map(dbFiles.map(f => [f.name, f.isStarred]));
+
+                    // Add isStarred to each file
+                    const filesWithStar = sortedFiles.map(file => ({
+                        ...file,
+                        isStarred: starredMap.get(file.name) ?? false
+                    }));
+
                     return {
                         ...folder,
-                        files: sortedFiles,
+                        files: filesWithStar,
                     };
 
                 } catch (error) {
