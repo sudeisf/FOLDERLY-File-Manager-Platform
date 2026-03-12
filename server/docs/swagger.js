@@ -19,6 +19,10 @@ const swaggerSpec = {
     { name: 'Folders' },
     { name: 'Files' },
     { name: 'Share' },
+    { name: 'Notifications' },
+    { name: 'Profile' },
+    { name: 'Favorites' },
+    { name: 'Shared' },
   ],
   components: {
     securitySchemes: {
@@ -62,6 +66,221 @@ const swaggerSpec = {
     },
   },
   paths: {
+    '/api/notifications/count': {
+      get: {
+        tags: ['Notifications'],
+        summary: 'Get unread notification count',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Count fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/notifications': {
+      get: {
+        tags: ['Notifications'],
+        summary: 'Get all notifications',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Notifications fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/notifications/read-all': {
+      put: {
+        tags: ['Notifications'],
+        summary: 'Mark all notifications as read',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'All marked as read' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/notifications/{id}/read': {
+      put: {
+        tags: ['Notifications'],
+        summary: 'Mark notification as read',
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Notification marked as read' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/notifications/enqueue-test': {
+      post: {
+        tags: ['Notifications'],
+        summary: 'Enqueue a test notification',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Test notification enqueued' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/profile/me': {
+      get: {
+        tags: ['Profile'],
+        summary: 'Get current user profile',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Profile fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+      put: {
+        tags: ['Profile'],
+        summary: 'Update current user profile',
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object' },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Profile updated' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/profile/me/activity': {
+      get: {
+        tags: ['Profile'],
+        summary: 'Get user recent activity',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Activity fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/profile/me/avatar': {
+      post: {
+        tags: ['Profile'],
+        summary: 'Upload profile avatar',
+        security: [{ cookieAuth: [] }],
+        requestBody: {
+          required: true,
+          content: {
+            'multipart/form-data': {
+              schema: { type: 'object', properties: { avatar: { type: 'string', format: 'binary' } } },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Avatar uploaded' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/favorites': {
+      get: {
+        tags: ['Favorites'],
+        summary: 'Get user favorites',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Favorites fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/shared': {
+      get: {
+        tags: ['Shared'],
+        summary: 'List items shared with current user',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Shared items fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/shared/my-activity': {
+      get: {
+        tags: ['Shared'],
+        summary: 'Get user recent shared activity',
+        security: [{ cookieAuth: [] }],
+        responses: {
+          200: { description: 'Activity fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/shared/folders/{id}/share-with': {
+      post: {
+        tags: ['Shared'],
+        summary: 'Share folder with users',
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
+        requestBody: {
+          required: true,
+          content: {
+            'application/json': {
+              schema: { type: 'object', properties: { emails: { type: 'array', items: { type: 'string' } }, userIds: { type: 'array', items: { type: 'string' } } } },
+            },
+          },
+        },
+        responses: {
+          200: { description: 'Folder shared' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/api/shared/{type}/{id}/activity': {
+      get: {
+        tags: ['Shared'],
+        summary: 'Get activity for shared item',
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'type', required: true, schema: { type: 'string', enum: ['file', 'folder'] } },
+          { in: 'path', name: 'id', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Activity fetched' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/share/{folderId}': {
+      post: {
+        tags: ['Share'],
+        summary: 'Generate share link for a folder',
+        security: [{ cookieAuth: [] }],
+        parameters: [
+          { in: 'path', name: 'folderId', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Share link generated' },
+          404: { description: 'Folder not found' },
+          401: { description: 'Unauthorized' },
+        },
+      },
+    },
+    '/share/{uuid}': {
+      get: {
+        tags: ['Share'],
+        summary: 'Access shared folder metadata/files by share UUID',
+        parameters: [
+          { in: 'path', name: 'uuid', required: true, schema: { type: 'string' } },
+        ],
+        responses: {
+          200: { description: 'Shared folder data' },
+          404: { description: 'Shared link not found' },
+          410: { description: 'Shared link expired' },
+        },
+      },
+    },
     '/api/auth/register': {
       post: {
         tags: ['Auth'],

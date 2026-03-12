@@ -265,24 +265,32 @@ The OpenAPI config lives in:
 - `POST /share/:folderId`
 - `GET /share/:uuid`
 
-## Production Notes
+### Notifications
 
-- Set `NODE_ENV=production` in `server/.env`.
-- Set `FRONTEND_URL` to your real public domain (or comma-separated domains).
-- Use HTTPS and terminate TLS at a reverse proxy/load balancer.
-- Use a strong `SESSION_SECRET` (32+ random bytes).
-- Keep `SESSION_COOKIE_SAMESITE=lax` for same-site deployments. If frontend/backend are on different sites, use `none` and HTTPS.
-- Rotate Supabase and JWT keys periodically.
-- Add centralized logging and monitoring before production rollout.
-- Rate limiting is enabled:
-  - Global API: `200 requests / 15 minutes` per IP
-  - Auth endpoints (`/api/auth/login`, `/api/auth/register`): `10 requests / 15 minutes` per IP
+- `GET /api/notifications/count` — Get unread notification count
+- `GET /api/notifications` — Get all notifications
+- `PUT /api/notifications/read-all` — Mark all notifications as read
+- `PUT /api/notifications/{id}/read` — Mark notification as read
+- `POST /api/notifications/enqueue-test` — Enqueue a test notification
 
-## Troubleshooting
+### Profile
 
-- `EADDRINUSE: 3000`:
-  - Another process is using port 3000. Stop it or change `PORT`.
-- `row-level security policy` upload errors:
-  - Confirm `SUPABASE_SERVICE_ROLE_KEY` is set in `server/.env`.
-- File view opens download instead of preview:
-  - Use `/api/files/view/...` endpoint and ensure browser supports that file type.
+- `GET /api/profile/me` — Get current user profile
+- `PUT /api/profile/me` — Update current user profile
+- `POST /api/profile/me/avatar` — Upload profile avatar
+- `GET /api/profile/me/activity` — Get user recent activity
+
+### Favorites
+
+- `GET /api/favorites` — Get user favorites
+
+### Shared
+
+- `GET /api/shared` — List items shared with current user
+- `GET /api/shared/my-activity` — Get user recent shared activity
+- `POST /api/shared/folders/{id}/share-with` — Share folder with users
+- `GET /api/shared/{type}/{id}/activity` — Get activity for shared item
+
+---
+
+All endpoints require authentication unless otherwise noted. See Swagger UI (`/api-docs`) for full request/response schemas.
