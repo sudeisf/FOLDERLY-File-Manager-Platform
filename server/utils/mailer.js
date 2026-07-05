@@ -1,16 +1,6 @@
 const nodemailer = require('nodemailer');
-const { MailtrapTransport } = require('mailtrap');
 
 const getMailerTransport = () => {
-  const mailtrapToken = process.env.MAILTRAP_TOKEN;
-  if (mailtrapToken) {
-    return nodemailer.createTransport(
-      MailtrapTransport({
-        token: mailtrapToken,
-      })
-    );
-  }
-
   const smtpHost = process.env.SMTP_HOST;
   const smtpPort = Number(process.env.SMTP_PORT || 587);
   const smtpUser = process.env.SMTP_USER;
@@ -37,12 +27,7 @@ const sendPasswordResetOtpEmail = async (email, otpCode) => {
     throw new Error('Mail transport is not configured on the server');
   }
 
-  const sender = process.env.MAILTRAP_SENDER_ADDRESS
-    ? {
-        address: process.env.MAILTRAP_SENDER_ADDRESS,
-        name: process.env.MAILTRAP_SENDER_NAME || 'File Uploader',
-      }
-    : process.env.SMTP_FROM || process.env.SMTP_USER;
+  const sender = process.env.SMTP_FROM || process.env.SMTP_USER;
 
   await transport.sendMail({
     from: sender,

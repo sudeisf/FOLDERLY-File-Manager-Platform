@@ -91,7 +91,7 @@ VITE_API_URL=/
 SESSION_SECRET=replace-with-a-strong-random-secret
 SESSION_COOKIE_SAMESITE=lax
 REDIS_URL=redis://redis:6379
-DATABASE_URL=mongodb://folderly-mongodb:27017/folderly
+DATABASE_URL=mongodb+srv://<username>:<password>@cluster0.mongodb.net/<dbname>?retryWrites=true&w=majority
 SUPABASE_URL=your-supabase-project-url
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key

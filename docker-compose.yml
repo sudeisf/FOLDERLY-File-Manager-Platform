@@ -1,28 +1,9 @@
-services:
-  mongodb:
-    image: mongo:7.0
-    container_name: folderly-mongodb
-    command: ["mongod", "--bind_ip_all"]
-    restart: unless-stopped
-    volumes:
-      - folderly-mongodb-data:/data/db
-    healthcheck:
-      test: ["CMD", "mongosh", "--quiet", "--eval", "db.adminCommand('ping').ok"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-      start_period: 20s
-    networks:
-      - shared_network
-
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: folderly-server
-    depends_on:
-      mongodb:
-        condition: service_healthy
+    depends_on: []
     env_file:
       - ./.env
     environment:
@@ -30,7 +11,7 @@ services:
       PORT: ${PORT:-4000}
       TRUST_PROXY: ${TRUST_PROXY:-1}
       FRONTEND_URL: ${FRONTEND_URL:-https://folderly.duckdns.org}
-      DATABASE_URL: ${DATABASE_URL:-mongodb://folderly-mongodb:27017/folderly}
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: ${REDIS_URL:-redis://redis:6379}
     ports:
       - "127.0.0.1:4000:4000"
@@ -65,9 +46,6 @@ services:
     restart: unless-stopped
     networks:
       - shared_network
-
-volumes:
-  folderly-mongodb-data:
 
 networks:
   shared_network:
