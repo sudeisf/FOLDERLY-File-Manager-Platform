@@ -24,7 +24,7 @@ const { initializeNotificationWorker } = require('./workers/notificationWorker')
 const { initSocketServer } = require('./realtime/socketServer');
 
 const prisma = new PrismaClient();
-const PORT = Number(process.env.PORT || 3001);
+const PORT = Number(process.env.PORT || 4000);
 const FRONTEND_URL = process.env.FRONTEND_URL || 'http://localhost:5173';
 const SESSION_SECRET = process.env.SESSION_SECRET || 'dev-insecure-session-secret';
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';

@@ -76,25 +76,37 @@ npm install
 Use the provided templates first:
 
 ```bash
-cp server/.env.example server/.env
+cp .env.example .env
 cp client/.env.example client/.env
 ```
 
-Then update `server/.env` with your real values:
+Then update `.env` with your real values:
 
 ```env
-PORT=3000
-NODE_ENV=development
-FRONTEND_URL=http://localhost:5173
-SESSION_SECRET=replace-with-a-strong-secret
+PORT=4000
+NODE_ENV=production
+TRUST_PROXY=1
+FRONTEND_URL=https://folderly.duckdns.org
+VITE_API_URL=/
+SESSION_SECRET=replace-with-a-strong-random-secret
 SESSION_COOKIE_SAMESITE=lax
-DATABASE_URL=your-mongodb-connection-string
+REDIS_URL=redis://redis:6379
+DATABASE_URL=mongodb://folderly-mongodb:27017/folderly
 SUPABASE_URL=your-supabase-project-url
 SUPABASE_ANON_KEY=your-anon-key
 SUPABASE_SERVICE_ROLE_KEY=your-service-role-key
 GOOGLE_CLIENT_ID=your-google-client-id.apps.googleusercontent.com
 GOOGLE_CLIENT_SECRET=your-google-client-secret
-GOOGLE_CALLBACK_URL=http://localhost:3000/api/auth/google/callback
+GOOGLE_CALLBACK_URL=https://folderly.duckdns.org/api/auth/google/callback
+MAILTRAP_TOKEN=your-mailtrap-api-token
+MAILTRAP_SENDER_ADDRESS=hello@demomailtrap.co
+MAILTRAP_SENDER_NAME=Mailtrap Test
+SMTP_HOST=
+SMTP_PORT=587
+SMTP_USER=
+SMTP_PASS=
+SMTP_FROM=
+FORCED_OTP_CODE=
 ```
 
 Notes:
@@ -150,13 +162,13 @@ The project includes container setup for both frontend and backend:
 ### Prerequisites
 
 - Docker Desktop (or Docker Engine + Compose plugin)
-- `server/.env` configured with valid values (especially DB and Supabase)
+- `.env` configured with valid values (especially DB and Supabase)
 
 ### Build and run
 
 Before first deploy, ensure:
 
-- `server/.env` exists (copy from `server/.env.example`)
+- `.env` exists (copy from `.env.example`)
 - `server/utils/private.pem` and `server/utils/public.pem` exist
 
 Start all services:
