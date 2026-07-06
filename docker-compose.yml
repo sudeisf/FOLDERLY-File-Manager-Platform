@@ -1,10 +1,28 @@
 services:
+  mongo:
+    image: mongo:7
+    container_name: folderly-mongo
+    command: ["mongod", "--bind_ip_all"]
+    healthcheck:
+      test: ["CMD", "mongosh", "--quiet", "mongodb://127.0.0.1:27017/admin", "--eval", "db.runCommand({ ping: 1 }).ok"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+    restart: unless-stopped
+    volumes:
+      - folderly-mongo-data:/data/db
+    networks:
+      - shared_network
+
   server:
     build:
       context: ./server
       dockerfile: Dockerfile
     container_name: folderly-server
-    depends_on: []
+    depends_on:
+      mongo:
+        condition: service_healthy
     env_file:
       - ./.env
     environment:
@@ -51,3 +69,6 @@ services:
 networks:
   shared_network:
     external: true
+
+volumes:
+  folderly-mongo-data:
