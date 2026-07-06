@@ -6,7 +6,7 @@ import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Progress } from "@/components/ui/progress"
+import { Input } from "@/components/ui/input"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useChangePasswordMutation } from "@/api/hooks/useAuthMutations"
@@ -74,19 +74,6 @@ export default function ProfilePage() {
       return err.response.data
     }
     return err.response?.data?.message || err.message || fallback
-  }
-
-  const handleSave = async () => {
-    try {
-      await updateProfileMutation.mutateAsync(formState)
-      toast({ title: "Profile saved", description: "Your account settings were updated." })
-    } catch (error) {
-      toast({
-        title: "Unable to save profile",
-        description: getErrorMessage(error, "Please try again."),
-        variant: "destructive",
-      })
-    }
   }
 
   const setField = <K extends keyof ProfileFormState>(field: K, value: ProfileFormState[K]) => {
@@ -273,21 +260,21 @@ export default function ProfilePage() {
                   type="password"
                   placeholder="Current password"
                   value={passwordForm.currentPassword}
-                  onChange={(event) => handlePasswordFieldChange("currentPassword", event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => handlePasswordFieldChange("currentPassword", event.target.value)}
                   className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
                 />
                 <Input
                   type="password"
                   placeholder="New password"
                   value={passwordForm.newPassword}
-                  onChange={(event) => handlePasswordFieldChange("newPassword", event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => handlePasswordFieldChange("newPassword", event.target.value)}
                   className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
                 />
                 <Input
                   type="password"
                   placeholder="Confirm new password"
                   value={passwordForm.confirmPassword}
-                  onChange={(event) => handlePasswordFieldChange("confirmPassword", event.target.value)}
+                  onChange={(event: React.ChangeEvent<HTMLInputElement>) => handlePasswordFieldChange("confirmPassword", event.target.value)}
                   className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
                 />
                 <Button
