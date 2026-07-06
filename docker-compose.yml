@@ -2,7 +2,7 @@ services:
   mongo:
     image: mongo:7
     container_name: folderly-mongo
-    command: ["mongod", "--bind_ip_all"]
+    command: ["mongod", "--replSet", "rs0", "--bind_ip_all"]
     healthcheck:
       test: ["CMD", "mongosh", "--quiet", "mongodb://127.0.0.1:27017/admin", "--eval", "db.runCommand({ ping: 1 }).ok"]
       interval: 10s
