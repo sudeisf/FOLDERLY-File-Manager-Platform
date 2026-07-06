@@ -79,10 +79,12 @@ model File {
 }
 
 model Share {
-  id        String   @id @default(auto()) @map("_id") @db.ObjectId
+  id        String   @id @default(uuid())
   folderId  String   @db.ObjectId
   folder    Folder   @relation(fields: [folderId], references: [id], name: "FolderShares")
   expiresAt DateTime
+
+  @@index([expiresAt])
 }
 
 model Notification {
