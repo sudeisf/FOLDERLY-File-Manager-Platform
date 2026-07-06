@@ -102,24 +102,30 @@ export default function AllFilesPage() {
         <h3 className="mb-3 text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">Recently Accessed</h3>
         {viewMode === "grid" ? (
           <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-4">
-            {model.recentFiles.length === 0 &&
+            {model.isLoading &&
               Array.from({ length: 4 }).map((_, index) => <Skeleton key={`recent-${index}`} className="h-[86px]" />)}
-            {model.recentFiles.map((file) => {
-              const Icon = getFileIcon(file.metadata.mimetype)
-              return (
-                <Card key={(file.uid ?? file.id) ?? file.name} className="border-border shadow-none">
-                  <CardContent className="flex items-center gap-3 p-3">
-                    <div className="grid h-10 w-10 place-content-center rounded-lg bg-primary/10 text-primary">
-                      <Icon className="h-4 w-4" />
-                    </div>
-                    <div className="min-w-0">
-                      <p className="truncate text-sm font-medium">{file.name}</p>
-                      <p className="text-xs text-muted-foreground">{file.folderName}</p>
-                    </div>
-                  </CardContent>
-                </Card>
-              )
-            })}
+            {!model.isLoading && model.recentFiles.length === 0 && (
+              <div className="col-span-full rounded-lg border border-dashed border-border bg-card px-4 py-8 text-center text-sm text-muted-foreground">
+                No recently accessed files yet.
+              </div>
+            )}
+            {!model.isLoading &&
+              model.recentFiles.map((file) => {
+                const Icon = getFileIcon(file.metadata.mimetype)
+                return (
+                  <Card key={(file.uid ?? file.id) ?? file.name} className="border-border shadow-none">
+                    <CardContent className="flex items-center gap-3 p-3">
+                      <div className="grid h-10 w-10 place-content-center rounded-lg bg-primary/10 text-primary">
+                        <Icon className="h-4 w-4" />
+                      </div>
+                      <div className="min-w-0">
+                        <p className="truncate text-sm font-medium">{file.name}</p>
+                        <p className="text-xs text-muted-foreground">{file.folderName}</p>
+                      </div>
+                    </CardContent>
+                  </Card>
+                )
+              })}
           </div>
         ) : (
           <div className="overflow-hidden rounded-lg border border-border bg-card">
@@ -128,9 +134,13 @@ export default function AllFilesPage() {
               <span>Folder</span>
               <span>Size</span>
             </div>
-            {model.recentFiles.length === 0 ? (
+            {model.isLoading ? (
               <div className="p-3">
                 <Skeleton className="h-[56px]" />
+              </div>
+            ) : model.recentFiles.length === 0 ? (
+              <div className="px-4 py-8 text-center text-sm text-muted-foreground">
+                No recently accessed files yet.
               </div>
             ) : (
               model.recentFiles.map((file) => {

@@ -1,28 +1,18 @@
-import { useEffect, useMemo, useRef, useState, type ChangeEvent } from "react"
+import { useEffect, useMemo, useState } from "react"
 import type { AxiosError } from "axios"
-import { Bell, Camera, Loader2, Lock, ShieldCheck, User } from "lucide-react"
+import { Bell, Loader2, Lock, ShieldCheck, User } from "lucide-react"
 
-// ...existing code...
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar"
 import { Button } from "@/components/ui/button"
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Checkbox } from "@/components/ui/checkbox"
-import { Input } from "@/components/ui/input"
 import { Progress } from "@/components/ui/progress"
 import { Separator } from "@/components/ui/separator"
 import { useToast } from "@/hooks/use-toast"
 import { useChangePasswordMutation } from "@/api/hooks/useAuthMutations"
-import { useMyProfileQuery, useUpdateMyProfileMutation, useUploadMyAvatarMutation } from "@/api/hooks/useProfile"
+import { useMyProfileQuery, useUpdateMyProfileMutation } from "@/api/hooks/useProfile"
 
 type ProfileFormState = {
-  username: string
-  email: string
-  firstName: string
-  lastName: string
-  about: string
-  avatarUrl: string
-  portfolioName: string
-  portfolioLink: string
   emailNotifications: boolean
   desktopNotifications: boolean
   sharedActivity: boolean
@@ -30,14 +20,6 @@ type ProfileFormState = {
 }
 
 const defaultFormState: ProfileFormState = {
-  username: "",
-  email: "",
-  firstName: "",
-  lastName: "",
-  about: "",
-  avatarUrl: "",
-  portfolioName: "",
-  portfolioLink: "",
   emailNotifications: true,
   desktopNotifications: true,
   sharedActivity: false,
@@ -48,10 +30,8 @@ export default function ProfilePage() {
   const { toast } = useToast()
   const { data: profile, isLoading, isError } = useMyProfileQuery()
   const updateProfileMutation = useUpdateMyProfileMutation()
-  const uploadAvatarMutation = useUploadMyAvatarMutation()
   const changePasswordMutation = useChangePasswordMutation()
   const [formState, setFormState] = useState<ProfileFormState>(defaultFormState)
-  const avatarInputRef = useRef<HTMLInputElement | null>(null)
   const [showPasswordForm, setShowPasswordForm] = useState(false)
   const [passwordForm, setPasswordForm] = useState({
     currentPassword: "",
@@ -65,14 +45,6 @@ export default function ProfilePage() {
     }
 
     setFormState({
-      username: profile.username,
-      email: profile.email,
-      firstName: profile.firstName,
-      lastName: profile.lastName,
-      about: profile.about,
-      avatarUrl: profile.avatarUrl,
-      portfolioName: profile.portfolioName,
-      portfolioLink: profile.portfolioLink,
       emailNotifications: profile.emailNotifications,
       desktopNotifications: profile.desktopNotifications,
       sharedActivity: profile.sharedActivity,
@@ -81,9 +53,9 @@ export default function ProfilePage() {
   }, [profile])
 
   const displayName = useMemo(() => {
-    const fullName = `${formState.firstName} ${formState.lastName}`.trim()
-    return fullName || formState.username || "User"
-  }, [formState.firstName, formState.lastName, formState.username])
+    const fullName = `${profile?.firstName || ""} ${profile?.lastName || ""}`.trim()
+    return fullName || profile?.username || "User"
+  }, [profile?.firstName, profile?.lastName, profile?.username])
 
   const avatarInitials = useMemo(() => {
     const base = displayName
@@ -114,31 +86,6 @@ export default function ProfilePage() {
         description: getErrorMessage(error, "Please try again."),
         variant: "destructive",
       })
-    }
-  }
-
-  const handleSelectAvatarClick = () => {
-    avatarInputRef.current?.click()
-  }
-
-  const handleAvatarChange = async (event: ChangeEvent<HTMLInputElement>) => {
-    const file = event.target.files?.[0]
-    if (!file) {
-      return
-    }
-
-    try {
-      const response = await uploadAvatarMutation.mutateAsync(file)
-      setField("avatarUrl", response.avatarUrl)
-      toast({ title: "Photo updated", description: "Profile image uploaded to storage." })
-    } catch (error) {
-      toast({
-        title: "Photo upload failed",
-        description: getErrorMessage(error, "Please try another image."),
-        variant: "destructive",
-      })
-    } finally {
-      event.target.value = ""
     }
   }
 
@@ -240,13 +187,6 @@ export default function ProfilePage() {
             <h1 className="text-2xl font-semibold tracking-tight text-slate-900 dark:text-slate-100">My Account</h1>
             <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Manage your identity, security, and workspace preferences.</p>
           </div>
-          <Button
-            className="rounded-sm bg-blue-600 px-5 text-white hover:bg-blue-700 hover:text-white dark:text-white"
-            onClick={handleSave}
-            disabled={updateProfileMutation.isPending}
-          >
-            {updateProfileMutation.isPending ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save Changes"}
-          </Button>
         </div>
       </div>
 
@@ -255,27 +195,11 @@ export default function ProfilePage() {
           <CardContent className="p-5">
             <div className="flex flex-col items-center text-center">
               <Avatar className="h-24 w-24 border-4 border-slate-100 shadow-sm dark:border-slate-700">
-                <AvatarImage src={formState.avatarUrl || undefined} alt={displayName} />
+                <AvatarImage src={profile?.avatarUrl || undefined} alt={displayName} />
                 <AvatarFallback className="bg-blue-100 text-2xl font-semibold text-blue-700 dark:bg-blue-900 dark:text-blue-200">{avatarInitials}</AvatarFallback>
               </Avatar>
               <h2 className="mt-3 text-lg font-semibold text-slate-900 dark:text-slate-100">{displayName}</h2>
-              <p className="text-sm text-slate-500 dark:text-slate-400">{formState.email || "No email"}</p>
-              <input
-                ref={avatarInputRef}
-                type="file"
-                accept="image/png,image/jpeg,image/svg+xml,image/webp,image/gif"
-                className="hidden"
-                onChange={handleAvatarChange}
-              />
-              <Button
-                variant="outline"
-                className="mt-4 w-full rounded-sm"
-                onClick={handleSelectAvatarClick}
-                disabled={uploadAvatarMutation.isPending}
-              >
-                <Camera className="h-4 w-4" />
-                {uploadAvatarMutation.isPending ? "Uploading..." : "Change Photo"}
-              </Button>
+              <p className="text-sm text-slate-500 dark:text-slate-400">{profile?.email || "No email"}</p>
             </div>
 
             <Separator className="my-5 dark:bg-slate-700" />
@@ -295,108 +219,36 @@ export default function ProfilePage() {
 
         <Card className="rounded-sm border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#18181B]">
           <CardHeader className="p-5 pb-3">
-            <CardTitle className="text-lg dark:text-slate-100">Personal Information</CardTitle>
+            <CardTitle className="text-lg dark:text-slate-100">Account Details</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4 p-5 pt-0">
+          <CardContent className="space-y-3 p-5 pt-0">
+            <div className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-[#18181B]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Username</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{profile?.username || "-"}</p>
+            </div>
+            <div className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-[#18181B]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Email</p>
+              <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{profile?.email || "-"}</p>
+            </div>
+            <div className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-[#18181B]">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">About</p>
+              <p className="text-sm text-slate-900 dark:text-slate-100">{profile?.about || "No profile bio added."}</p>
+            </div>
             <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">First Name</label>
-                <Input
-                  value={formState.firstName}
-                  onChange={(event) => setField("firstName", event.target.value)}
-                  className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-                />
+              <div className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-[#18181B]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Portfolio Name</p>
+                <p className="text-sm font-medium text-slate-900 dark:text-slate-100">{profile?.portfolioName || "-"}</p>
               </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Last Name</label>
-                <Input
-                  value={formState.lastName}
-                  onChange={(event) => setField("lastName", event.target.value)}
-                  className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Email</label>
-              <Input
-                value={formState.email}
-                onChange={(event) => setField("email", event.target.value)}
-                type="email"
-                className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Username</label>
-              <Input
-                value={formState.username}
-                onChange={(event) => setField("username", event.target.value)}
-                className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Avatar URL</label>
-              <Input
-                value={formState.avatarUrl}
-                onChange={(event) => setField("avatarUrl", event.target.value)}
-                placeholder="https://example.com/avatar.jpg"
-                className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-              />
-            </div>
-
-            <div className="space-y-2">
-              <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">About</label>
-              <textarea
-                value={formState.about}
-                onChange={(event) => setField("about", event.target.value)}
-                rows={4}
-                className="w-full resize-none rounded-sm border border-slate-200 bg-white px-3 py-2 text-sm text-slate-900 shadow-sm outline-none focus:ring-1 focus:ring-blue-500 dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-              />
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Portfolio Name</label>
-                <Input
-                  value={formState.portfolioName}
-                  onChange={(event) => setField("portfolioName", event.target.value)}
-                  className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-                />
-              </div>
-              <div className="space-y-2">
-                <label className="text-xs font-semibold uppercase tracking-[0.08em] text-slate-500 dark:text-slate-400">Portfolio Link</label>
-                <Input
-                  value={formState.portfolioLink}
-                  onChange={(event) => setField("portfolioLink", event.target.value)}
-                  className="rounded-sm border-slate-200 bg-white dark:border-slate-700 dark:bg-[#18181B] dark:text-slate-100"
-                />
+              <div className="rounded-sm border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-700 dark:bg-[#18181B]">
+                <p className="text-[11px] font-semibold uppercase tracking-[0.12em] text-slate-500 dark:text-slate-400">Portfolio Link</p>
+                <p className="truncate text-sm font-medium text-slate-900 dark:text-slate-100">{profile?.portfolioLink || "-"}</p>
               </div>
             </div>
           </CardContent>
         </Card>
       </div>
 
-      <div className="mt-5 grid gap-5 lg:grid-cols-2">
-        <Card className="rounded-sm border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#18181B]">
-          <CardHeader className="flex-row items-center justify-between p-5 pb-3">
-            <CardTitle className="text-lg dark:text-slate-100">Storage & Plan</CardTitle>
-            <span className="rounded-md bg-amber-100 px-2 py-0.5 text-xs font-semibold text-amber-700">PREMIUM</span>
-          </CardHeader>
-          <CardContent className="space-y-4 p-5 pt-0">
-            <div className="flex justify-between text-sm text-muted-foreground">
-              <span>7.5 GB of 10 GB used</span>
-              <span className="font-semibold text-foreground">75%</span>
-            </div>
-            <Progress value={75} className="h-2" />
-            <div className="grid grid-cols-2 gap-3">
-              <Button className="rounded-sm bg-blue-600 text-white hover:bg-blue-700 hover:text-white dark:text-white">Upgrade Plan</Button>
-              <Button variant="secondary" className="rounded-sm">Manage Billing</Button>
-            </div>
-          </CardContent>
-        </Card>
-
+      <div className="mt-5 grid gap-5 lg:grid-cols-1">
         <Card className="rounded-sm border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-[#18181B]">
           <CardHeader className="p-5 pb-3">
             <CardTitle className="text-lg dark:text-slate-100">Account Security</CardTitle>
