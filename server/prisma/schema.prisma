@@ -79,7 +79,7 @@ model File {
 }
 
 model Share {
-  id        String   @id @default(uuid())
+  id        String   @id @default(uuid()) @map("_id")
   folderId  String   @db.ObjectId
   folder    Folder   @relation(fields: [folderId], references: [id], name: "FolderShares")
   expiresAt DateTime
